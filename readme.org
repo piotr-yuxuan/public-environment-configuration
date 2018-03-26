@@ -1,0 +1,1047 @@
+#+TITLE:Litterate macOS configuration
+#+AUTHOR: piotr-yuxuan
+#+LANGUAGE: en
+
+This file might be most readable in an org-mode buffer directly. You
+can also read it from GitHub but it doesn't show source block options
+like =:name= or =:tangle=.
+
+* :TOC_2_gh:
+- [[#goals][Goals]]
+  - [[#choices-made-to-reach-these-goals][Choices made to reach these goals]]
+  - [[#learnt-mistakes][Learnt mistakes]]
+- [[#how-to-use-this-file][How to use this file]]
+  - [[#quick-introduction-on-org-mode-and-babel][Quick introduction on org-mode and Babel]]
+- [[#z-shell-run-order][Z-shell run order]]
+- [[#domains][Domains]]
+  - [[#hello][Hello]]
+  - [[#organisation-of-home][Organisation of =$HOME=]]
+  - [[#command-line-configuration][Command-line configuration]]
+  - [[#terminal-shell][Terminal, shell]]
+  - [[#languages][Languages]]
+  - [[#how-to-set-path][How to set =$PATH=]]
+  - [[#home-structure][=$HOME= structure]]
+  - [[#information-system-of-the-company-i-work-for][Information system of the company I work for]]
+  - [[#editors-and-tools][Editors and tools]]
+- [[#other-tools-to-manage-configuration][Other tools to manage configuration]]
+
+* Goals
+
+0. ([[http://batsov.com/articles/2011/11/19/why-emacs/][Trust]]) Rely on Emacs.<<goal-0>>
+
+1. ([[https://en.wikipedia.org/wiki/KISS_principle][KISS principle]]) I want my configuration to be kept simple, stupid:
+   most systems work better when kept simple. No need to change
+   mindset, no need to burden beginners with something
+   abstruse. <<goal-1>>
+
+2. ([[https://en.wikipedia.org/wiki/Principle_of_locality][principle of locality]]) I want a self-contained configuration in
+   one single place. I want different settings related to the same
+   stuff be close to each other. No other, hidden data are needed for
+   the understanding and nobody else should produce
+   side-effect. <<goal-2>>
+
+3. ([[https://en.wikipedia.org/wiki/Predictability][predictability]]) I want my command-line environment to keep the
+   same behaviour, no matter how many times I invoke and execute this
+   configuration file. Also, I want to be able to come back to a
+   previous behaviour when someting goes wrong. <<goal-3>>
+
+4. ([[https://en.oxforddictionaries.com/definition/Declarative][declarativeness]]) I want to keep track of the reasonning which led
+   to decisions and choices about this configuration. <<goal-4>>
+
+Non goal: making this file portable and installable over the network
+on new computers.
+
+- It would be rather useless: I usually work on one computer everyday
+  and don't change that often.
+- It would contradict [[goal-1][first principle]]. This is not an automatic
+  installation script, write one if you want so.
+
+** Choices made to reach these goals
+
+0. [[goal-0][Rely on Emacs]]
+   - [[interglacial.com/pub/Evolution-of-Lisp.ps.gz][why LISP?]]
+   - [[http://batsov.com/articles/2011/11/19/why-emacs/][why Emacs?]]
+   - Emacs is a most awesome piece of software written in a most
+     powerful programming language. I don't see any trouble to depend
+     on it. On the contrary, I want Emacs to slowly infuse into my
+     mind and to shape my thoughts.
+
+1. [[goal-1][KISS principle]]
+   - Don't modify actual configuration without a [[copy files from the repo to $HOME][conscious action from
+     the user]].
+   - User doesn't need to be conscious about this file to modify their
+     system configuration, they can always catch up later and see
+     what's changed.
+   - This is only a documentation, not an automatic deployment system
+     or a configuration manager. It is ~what~ you want to do and
+     ~why~ you chose that, no ~how~ to make it happen.
+
+2. [[goal-2][Locality]]
+   - Only use this repository for most of your general environment
+     configuration. Structure decision by domains so different
+     settings about the same domain end near each other. If need be,
+     link across related concerns.
+   - Specialised settings related to something specific (Emacs,
+     IntelliJ) live in their own repositories, they are imported as
+     git modules.
+   - Any shell setting must originate from here. I've chosen to build
+     Z-shell with option [[--without-etcdir]] so =/etc/z*= become muted
+     and this goal is met (debatable, perhaps it's less KISS).
+
+3. [[goal-3][Predictability]]
+   - Use git to version this repository so you can always checkout a
+     prior state.
+
+4. [[goal-4][Declarativeness]]
+   - Use git to keep track of changes in time. You can see differences
+     from the last commit as well as use =git bissect= when you don't
+     understand something weird.
+   - Use litterate programming to explain all the whereabouts about
+     the configuration you choose to set up.
+
+** Learnt mistakes
+
+*** =$HOME= as a git repository for configuration files
+
+Why it's not a good idea:
+
+- Quite a lot of programs behave differently when they are in a git
+  repository.
+- It's tedious to gitignore everything then un-ignore only specific
+  files. Last time I checked I ended up with long, inexplicable
+  =.gitignore=.
+- Do you feel completely quiet doing =git bisect= or =git reset
+  --hard= on your =$HOME=? Why not trying =git clean -x= in a deep
+  subdirectory whilst you think it's a repository but it isn't?
+
+*** Each shell functions has its own =$HOME/bin= file
+
+Why it's not a good idea:
+
+- Is there any advantage doing that way in the context of a shell?
+- It's a bad idea because it strongly separates the function from
+  where it's used.
+- It can help create boring rookie bugs like keychain [[fork-bomb][fork bomb]].
+
+*** (macOS) Use =launchctl setenv= for environment variables
+
+Why it's not a good idea:
+
+- Most GUI apps don't refresh their environment once they're started.
+- =launchtl= define the environment for all macOS applications
+  (including the terminal emulator) and then you append additional
+  variables in your shell startup files. It's pretty useless to expose
+  cli variables to graphical applications.
+- I don't find [[https://stackoverflow.com/a/27049223][that kind of stuff]] actually fun. The proprietary Apple
+  environment API aren't really stable to my eyes, I don't feel amused
+  to waste time about them so I prefer to stay the most Unix-like
+  possible.
+
+If you need to tune the environment of an app, you can use plist key
+[[https://developer.apple.com/library/mac/documentation/General/Reference/InfoPlistKeyReference/Articles/LaunchServicesKeys.html#//apple_ref/doc/uid/20001431-106825][LSEnvironment]] (but leave a comment here so you will remind this in 8
+months). Under the exceptional case you would need something really
+user-specific, you could indeed use =launchctl setenv= in
+=$HOME/.login=.
+
+*** Use magic tools or nuclear bombs to kill a mosquito
+
+What do you think of [[http://endoflineblog.com/gitflow-considered-harmful][GitFlow]]? I think the basic feature branching
+naming is a good idea but everything else is complicated and
+cluttered. I always need to read a [[https://gist.github.com/piotr-yuxuan/0553525c846b2d52226adb4e928d0295][translation to raw git commands]] to
+feel confident about what's going on. It's a complete framework to put
+in your head when basic git commands are much more simple to reason
+about.
+
+Perhaps you want something awfully difficult and complex so it looks
+more professional. Automate dotfiles deployments with [[https://blog.palcu.ro/2014/06/dotfiles-and-dev-tools-provisioned-by.html][Puppet or Chef]]
+if you go for it.
+
+The ease of use is not interesting in front of the simplicity of
+use. Don't automate overly, don't add too much incidental complexity.
+
+*** Put a lot of thing into =$HOME/.login= to fasten shell startup
+
+Only put here side-effects which are to be executed once at
+start-up. If you want your shell to take less time to boot, choose
+carefully which Z-shell plugins you launch. Keep in mind that this
+file isn't standard in macOS.
+
+* How to use this file
+
+As stated before, this document merely discusses the choices made
+about the configuration and presents the resulting configuration
+files. How to bind this result to any useful configuration files is a
+choice left to be made to the user.
+
+The inner repository tree structure of the tangled files matches the
+one of the user =$HOME=. That's to say, the tangled file
+=$REPO_PATH/.emacs.d/init.el= mirrors =$HOME/.emacs.d/init.el=.
+
+It is very simple to use this file:
+
+- Evaluate code snippets with =org-babel-execute-src-block=.
+- Generate tangled files with =org-babel-tangle=.
+
+Then you basically have three options:
+
+- Create symbolic links manaually
+- Rely on GNU Strow to manage symbolic links
+- Copy files from this repository onto the actual configuration files
+
+The most simple, stupid options is to use =cp= so actual conf files
+modification requires an explicit action from the user.
+
+Included below is a script to [[copy files from $HOME to the repo]]. It's
+useful when you want see with =git diff= what is about to
+change. Let's define the path of this repository so we can use it
+later with reference extension.
+
+#+COMMENT: the result is cached with ~:cache yes~.
+#+NAME: repo-path
+#+BEGIN_SRC emacs-lisp :cache yes
+  (expand-file-name ".")
+#+END_SRC
+
+#+NAME: copy files from $HOME to the repo
+#+BEGIN_SRC shell :results silent :noweb yes
+  REPO_PATH=<<repo-path()>>
+  cp $HOME/.login  $REPO_PATH/.login
+  cp $HOME/.zshenv $REPO_PATH/.zshenv
+  cp $HOME/.zshrc  $REPO_PATH/.zshrc
+  cp $HOME/.zlogin $REPO_PATH/.zlogin
+#+END_SRC
+
+When you're satisfied with these changes, you can [[copy files from the
+repo to $HOME]].
+
+#+NAME: copy files from the repo to $HOME
+#+BEGIN_SRC shell :results silent :noweb yes
+  REPO_PATH=<<repo-path()>>
+  cp $REPO_PATH/.login  $HOME/.login
+  cp $REPO_PATH/.zshenv $HOME/.zshenv
+  cp $REPO_PATH/.zshrc  $HOME/.zshrc
+  cp $REPO_PATH/.zlogin $HOME/.zlogin
+#+END_SRC
+
+** Quick introduction on org-mode and Babel
+
+Thorough descriptions of [[https://orgmode.org/][org-mode]] and [[https://orgmode.org/worg/org-contrib/babel/][Babel]] are available on their
+respective manual.
+
+In a very simple way, this file contains source blocks. Emacs, when
+asked properly (thanks to Babel), can write these blocks out to
+specified files. For example, the following block would be written out
+to =./my-file.txt= -- this file is said to be tangled.
+
+#+BEGIN_SRC org
+  ,#+BEGIN_SRC text :tangle ./my-file.txt
+    This is the new content of file
+  ,#+END_SRC
+#+END_SRC
+
+You can also /execute/ code in source blocks like the following
+one. Here I specify =shell= as the source language so it will get
+executed ith my default shell (which is Z-shell).
+
+#+BEGIN_SRC org
+  ,#+BEGIN_SRC shell :results silent
+    cp ./my-file.txt ./renamed-file.txt
+  ,#+END_SRC
+#+END_SRC
+
+Finally, let's use [[https://orgmode.org/manual/var.html][block arguments]] and [[https://orgmode.org/manual/Noweb-reference-syntax.html][reference expension]]. Arguments
+are passed to the source block as they would be set in the
+language. Reference expension are a bit like macro and get replaced in
+the body of the block /before/ it gets evaluated. This last block is
+equivalent to the previous one.
+
+#+BEGIN_SRC org
+  ,#+NAME: current-file
+  ,#+BEGIN_SRC emacs-lisp
+    (concat "my-file" ".txt")
+  ,#+END_SRC
+
+  ,#+BEGIN_SRC shell :results silent :var CURRENT_PATH=(expand-file-name ".")
+    cp ./<<current-file()>> $CURRENT_PATH/renamed-file.txt
+  ,#+END_SRC
+#+END_SRC
+
+Yeah, I know, Emacs /is/ *powerful* and can turn a litterate description
+of your settings into a effectful [[https://en.wikipedia.org/wiki/Read%E2%80%93eval%E2%80%93print_loop][REPL]].
+
+* Z-shell run order
+
+Here we set the header for Z-shell startup files. No previous source
+blocks should be tangled to these files because they would appear
+before the file header then.
+
+Each of these files is reset by Babel when tangled. As they're to be
+executed by Z-shell, they start with the appropriate shabang. The
+first one of them is not standard in macOS, I describe it in first
+length in a [[(macOS) =$HOME/.login=][later section]].
+
+#+BEGIN_SRC shell :tangle ./.login :noweb yes
+  #!/bin/zsh
+  # - This file is written automatically by configuration script in
+  #   <<repo-path()>>.
+  #   You can author this file directly, or update the script.
+  # - $HOME/.login is run when a user logs in. It's not standard in
+  #   macOS so LaunchAgent $HOME/Library/LaunchAgents/user.login.plist
+  #   watches it and reloads it once it's written out.
+#+END_SRC
+
+The next three files are specific to Z-shell which I choose to use
+everywhere. Here they are presented is the order they are looked up.
+
+#+BEGIN_SRC shell :tangle ./.zshenv :noweb yes
+  #!/bin/zsh
+  # - This file is written automatically by configuration script in
+  #   <<repo-path()>>.
+  #   You can author this file directly, or update the script.
+  # - $HOME/.zshenv is run for all shells.
+#+END_SRC
+
+#+BEGIN_SRC shell :tangle ./.zshrc :noweb yes
+  #!/bin/zsh
+  # - This file is written automatically by configuration script in
+  #   <<repo-path()>>.
+  #   You can author this file directly, or update the script.
+  # - $HOME/.zshrc is run for all interactive shells, that's to say any
+  #   shell I can write and send commands to.
+#+END_SRC
+
+#+BEGIN_SRC shell :tangle ./.zlogin :noweb yes
+  #!/bin/zsh
+  # - This file is written automatically by configuration script in
+  #   <<repo-path()>>.
+  #   You can author this file directly, or update the script.
+  # - $HOME/.zlogin is run for all login shells, that's to say any shell
+  #   started as a fundamental terminal emulator interpretor (wording is
+  #   approximative).
+#+END_SRC
+
+* Domains
+
+Of course evaluation order matters. For example, the definition of
+function =keychain-environment-variable= must be defined before it is
+used, and must be in the same file, or a file load before its
+use. This should not be too difficult an order.
+
+** Hello
+
+Simple function providing a warm greeting towards the user.
+
+#+BEGIN_SRC shell :tangle ./.zshrc
+  function hello {
+    echo "Hello, world!"
+  }
+#+END_SRC
+
+** Organisation of =$HOME=
+
+#+BEGIN_SRC tree
+  /Users/$USER
+  ├── Desktop
+  ├── bin
+  ├── dist -> $HOME/.m2/repository
+  ├── environment-configuration
+  ├── img -> Pictures
+  ├── lib -> Library
+  ├── man
+  ├── mov -> Movies
+  ├── net -> Downloads
+  ├── pkg
+  ├── pvt -> Documents
+  ├── snd -> Music
+  └── src
+#+END_SRC
+
+I feel like it would really be a terrible idea to actually rename user
+folders like Documents and Movies because there are very standard
+folders which are not meant to change. Even with a standard macOS tool
+to say "OK, now let's change the default folder for pictures from
+Pictures to img", I can't guarantee that no program wouldn't blindly
+assume it exists.
+
+I have chosen to hide default folders and create symbolic links to
+them so it looks like what I want but the change doesn't bring too
+deep implication and weird bugs.
+
+These file names are inspired from what [[Go language][golang]] expects.
+
+** Command-line configuration
+*** Hostname
+
+https://apple.stackexchange.com/a/90873
+
+#+BEGIN_SRC shell :dir /sudo:: :var hostname="work"
+  sudo scutil --set ComputerName $hostname
+  sudo scutil --set LocalHostName $hostname
+  sudo scutil --set HostName $hostname
+
+  dscacheutil -flushcache
+  # Perhaps you will need to restart applications or even you computer
+  # for this setting to take effect.
+#+END_SRC
+
+*** =$HOME/.login=
+
+=$HOME/.login= isn't a standard file in macOS. However, I've found
+it a nice tool for side-effects which must be invoked once in a
+while and not for each new shell (for example [[SSH configuration][ssh configuration]]).
+
+#+BEGIN_SRC xml
+  <?xml version="1.0" encoding="UTF-8"?>
+  <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+  <plist version="1.0">
+	  <dict>
+		  <key>Label</key>
+		  <string>user.login</string>
+
+		  <key>ProgramArguments</key>
+		  <array>
+			  <string>/bin/zsh</string>
+			  <string>$HOME/.login</string>
+		  </array>
+
+		  <key>RunAtLoad</key>
+		  <true/>
+
+		  <key>WatchPaths</key>
+		  <array>
+			  <string>$HOME/.login</string>
+		  </array>
+	  </dict>
+  </plist>
+#+END_SRC
+
+This file is not included in the source block which [[copy repo files to $HOME][copy files to
+$HOME]] because it is almost never updated. In addition to that, it must
+be reloaded with the following script whenever it changes.
+
+#+NAME: reload $HOME/Library/LaunchAgents/user.login.plist
+#+BEGIN_SRC shell
+  launchctl unload -w $HOME/Library/LaunchAgents/user.login.plist
+  launchctl load -w $HOME/Library/LaunchAgents/user.login.plist
+#+END_SRC
+
+*** Environment variables in the keychain
+
+I don't want to put my sensitive environment variables in plain text
+in this file, so I store them in the Keychain.
+
+#+BEGIN_SRC shell :tangle ./.zshenv
+  function keychain-environment-variable () {
+    security find-generic-password -w -a ${USER} -D "environment variable" -s "${1}"
+  }
+#+END_SRC
+
+Here is how to add a new item in the keychain:
+
+#+BEGIN_SRC shell
+  security add-generic-password \
+    -U \
+    -a ${USER} \
+    -D "environment variable" \
+    -s "HELLO_WORLD" \
+    -w "Hello, world! $(date)"
+#+END_SRC
+
+I've stumbled into a (predictible, rookie) bug when I tried to put
+=$(keychain-environment-variable)= in a Z-shell boot file. Of course,
+as this command create a subshell, it result in a fork bomb
+<<fork-bomb>>.
+
+As usual, environment variables exported from a shell are available
+from the subshell.
+
+*** Brew, macOS package manager
+
+#+BEGIN_SRC shell :tangle ./.zshenv
+  export HOMEBREW_GITHUB_API_TOKEN=`keychain-environment-variable HOMEBREW_GITHUB_API_TOKEN`
+#+END_SRC
+
+**** Keeping your system up to date.
+After [[https://medium.com/@waxzce/keeping-macos-clean-this-is-my-osx-brew-update-cli-command-6c8f12dc1731][this page]]. It would be wonderful to use =mas=. Err, wait, not
+really. I use almost no program from app store except Line. If I use
+Line, I must be sure I can avoid OS upgrades.
+
+#+NAME: update and clean brew
+#+BEGIN_SRC shellell :results output verbatim
+  brew update
+  brew upgrade
+  brew cleanup -s
+  brew cask cleanup
+#+END_SRC
+
+**** Reproducible environment
+
+How to get a reproducible configuration with brew? I will later use
+Nix, the /functional/ package manager. For now I can at least [[describe brew state][get a
+description]] of installed software with brew.
+
+#+NAME: describe brew state
+#+BEGIN_SRC shell :results silent :var REPO_PATH=(expand-file-name ".")
+  # We don't care about actual Brewfile because it will be regenerated
+  # soon and it's versionned anyway.
+  rm $REPO_PATH/Brewfile
+
+  # Generate Brewfile with hard location
+  BREWFILE_PATH=$REPO_PATH brew bundle dump
+
+  # List installed software with version
+  brew list --versions > $REPO_PATH/brew-list-versions
+
+  # List installed software with version (cask)
+  brew cask list --versions > $REPO_PATH/brew-cask-list-versions
+#+END_SRC
+
+*** macOS utilities
+I previously modified =/etc/*= and six months later I loose one full
+hour because of an unwise side-effect. As a result, I got the strong
+opinion that no side-effect should be defined out of this file. To
+ensure so I compile Z-shell with option =--without-etcdir=
+<<--without-etcdir>> so it doesn't read rc files in =/etc=.
+
+**** Change current directory to frontmost window of macOS Finder.
+
+#+BEGIN_SRC shell :tangle ./.zshrc
+  pfd () {
+      currFolderPath=$( /usr/bin/osascript <<EOT
+	  tell application "Finder"
+	      try
+	  set currFolder to (folder of the front window as alias)
+	      on error
+	  set currFolder to (path to desktop folder as alias)
+	      end try
+	      POSIX path of currFolder
+	  end tell
+  EOT
+      )
+      "$currFolderPath"
+  }
+#+END_SRC
+
+**** Recursively delete .DS_Store files
+
+#+BEGIN_SRC shell :tangle ./.zshrc
+  alias cleanupDS="find . -type f -name '*.DS_Store' -ls -delete"
+#+END_SRC
+
+**** Hide or show hidden files in Finder
+
+#+BEGIN_SRC shell :tangle ./.zshrc
+  alias finderShowHidden='defaults write com.apple.finder AppleShowAllFiles TRUE'
+  alias finderHideHidden='defaults write com.apple.finder AppleShowAllFiles FALSE'
+#+END_SRC
+
+**** Network helpers
+
+#+BEGIN_SRC shell :tangle ./.zshrc
+  alias myip='curl ip.appspot.com'                    # myip:         Public facing IP Address
+  alias netCons='lsof -i'                             # netCons:      Show all open TCP/IP sockets
+  alias flushDNS='dscacheutil -flushcache'            # flushDNS:     Flush out the DNS Cache
+  alias lsock='sudo /usr/sbin/lsof -i -P'             # lsock:        Display open sockets
+  alias lsockU='sudo /usr/sbin/lsof -nP | grep UDP'   # lsockU:       Display only open UDP sockets
+  alias lsockT='sudo /usr/sbin/lsof -nP | grep TCP'   # lsockT:       Display only open TCP sockets
+  alias ipInfo0='ipconfig getpacket en0'              # ipInfo0:      Get info on connections for en0
+  alias ipInfo1='ipconfig getpacket en1'              # ipInfo1:      Get info on connections for en1
+  alias openPorts='sudo lsof -i | grep LISTEN'        # openPorts:    All listening connections
+  alias showBlocked='sudo ipfw list'                  # showBlocked:  All ipfw rules inc/ blocked IPs
+#+END_SRC
+
+**** Syntactic sugar for search
+
+#+BEGIN_SRC shell :tangle ./.zshrc
+  alias f="find . -name "                     # f:        Quickly search for file
+  ff () { /usr/bin/find . -name "$@" ; }      # ff:       Find file under the current directory
+  ffs () { /usr/bin/find . -name "$@"'*' ; }  # ffs:      Find file whose name starts with a given string
+  ffe () { /usr/bin/find . -name '*'"$@" ; }  # ffe:      Find file whose name ends with a given string
+#+END_SRC
+
+** Terminal, shell
+
+I use iTerm2 as a terminal but you could use built-in Apple
+Terminal. I use Z-shell as a shell.
+
+*** iTerm2
+
+**** Installation
+
+#+BEGIN_SRC shell
+  brew cask info iterm2-nightly
+#+END_SRC
+
+**** Configuration
+
+No special thing about it.
+
+**** Integration
+
+#+BEGIN_SRC shell :tangle ./.zshrc
+  path+=("$HOME/.iTerm2"); export PATH
+#+END_SRC
+
+*** Z-shell
+
+**** Installation
+
+#+BEGIN_SRC shell
+  brew install zsh --without-etcdir --with-unicode9 --with-pcre
+#+END_SRC
+
+Define Z-shell as you default session shell:
+
+#+BEGIN_SRC shell
+  chsh -s $(which zsh)
+#+END_SRC
+
+I install the latest (stable) version of Z-shell. I compile it with an
+option which explicitly disables the reading of Zsh rc files in /etc
+<<without-etcdir>>, so it further enforces that all configuration must
+come from here.
+
+**** Basic configuration
+
+This obviously targets interactive shells.
+
+#+BEGIN_SRC shell :tangle ./.zshenv
+  export LANG=en_GB.UTF-8
+  export VISUAL='emacsclient --create-frame'
+  export EDITOR='emacsclient'
+  export ARCHFLAGS="-arch x86_64"
+#+END_SRC
+
+I need history variables for interactive shells, they would
+be useless elsewhere.
+
+#+BEGIN_SRC shell :tangle ./.zshrc
+  export HISTSIZE=300000
+  export HISTFILESIZE=1500000
+  export HISTTIMEFORMAT="%d/%m/%y %T "
+#+END_SRC
+
+**** Hush login
+
+Custom shell prompts when you first open a terminal in a session. You
+wanna trigger it only once after your login or =$HOME.login= is
+reloaded.
+
+#+BEGIN_SRC shell :tangle ./.login
+  if [[ -f $HOME/.hushlogin ]]; then
+    rm $HOME/.hushlogin
+  fi
+#+END_SRC
+
+#+BEGIN_SRC shell :tangle ./.zlogin
+  # If it's in a terminal and no .hushlogin is present
+  if [[ ( -t 1 ) && ( ! -f $HOME/.hushlogin ) ]]; then
+    # Don't display it again
+    touch $HOME/.hushlogin
+
+    # Gracefully display architecture
+    archey 2>& /dev/null
+
+    echo "$(fortune)\n"
+  fi
+#+END_SRC
+
+**** Zplug
+
+I don't actually use it by now. I keep this here so it will be a
+reminder whenever I will actually use zplug. From now on I don't have
+a clear for it. If it can handle plugins from a lot of sources and
+give me absolute, reproductible versions (just like straight.el for
+Emacs) I want to go for it.
+
+From installation script output:
+
+#+BEGIN_QUOTE
+  ==> Caveats
+  In order to use zplug, please add the following to your .zshrc:
+    export ZPLUG_HOME=/usr/local/opt/zplug
+    source $ZPLUG_HOME/init.zsh
+#+END_QUOTE
+
+**** Oh-my-zsh
+
+#+BEGIN_SRC shell :tangle ./.zshrc
+  export ZSH=$HOME/.oh-my-zsh
+
+  # I should better use TERM_PROGRAM
+  case $TERM in
+      # - Emacs term and multi-term
+      eterm-color) export ZSH_THEME=lambda
+		   ;;
+      # - Emacs eshell
+	# not a zsh shell, don't read this file
+      # - iTerm
+      # - Terminal (macOS standard app set up for this)
+      xterm-256color) export BULLETTRAIN_DIR_EXTENDED=2
+		      export BULLETTRAIN_PROMPT_ADD_NEWLINE=false
+		      export BULLETTRAIN_PROMPT_ORDER=(git context dir time)
+		      export ZSH_THEME=bullet-train
+		      ;;
+  esac
+
+  # Yes, I'm a sinner. (enables oh-my-zsh auto updates)
+  export DISABLE_UPDATE_PROMPT=true
+
+  # Colours in the terminal
+  export LSCOLORS=gxBxhxDxfxhxhxhxhxcxcx
+  export CLICOLOR=1
+
+  # zsh-autosuggestions git git-extras emacs aws npm node go golang lein
+  plugins=(zsh-autosuggestions git git-extras emacs go golang lein)
+  source $ZSH/oh-my-zsh.sh
+
+  if [[ 'iTerm.app' = $TERM_PROGRAM ]]; then
+    source "${HOME}/.iterm2_shell_integration.zsh"
+  fi
+#+END_SRC
+
+*** Shell utilities
+
+**** SSH configuration
+
+#+BEGIN_SRC shell :tangle ./.login
+  # Add keys once and for all
+  ssh-add -K $HOME/.ssh/cloudera.pem
+  ssh-add -K $HOME/.ssh/${USER}_ssh
+#+END_SRC
+
+**** GPG Terminal
+
+#+BEGIN_SRC shell :tangle ./.zshenv
+  export GPG_TTY=$(tty)
+#+END_SRC
+
+**** Jump over directories
+
+I use =z= for it. It's like =j= but if I remember well it's in pure
+script.
+
+#+BEGIN_SRC shell :tangle ./.zshrc
+  source `brew --prefix`/etc/profile.d/z.sh
+#+END_SRC
+
+I also define some shortcuts. They are to be used only by myself
+directly from the command line, hence I put them in =~./.zshrc=.
+
+#+BEGIN_SRC shell :tangle ./.zshrc
+  export SRC="$HOME/src"
+  export  GH="$SRC/github.com"
+  export SND="$HOME/snd"
+  export MOV="$HOME/mov"
+  export NET="$HOME/net"
+#+END_SRC
+
+**** Colourful man pages
+
+This come from [[http://boredzo.org/blog/archives/2016-08-15/colorized-man-pages-understood-and-customized?utm_source=hackernewsletter&utm_medium=email&utm_term=code][boredzo.org]].
+
+#+BEGIN_SRC shell :tangle ./.zshrc
+  man() {
+      env \
+	  LESS_TERMCAP_mb=$(printf "\e[1;31m") \
+	  LESS_TERMCAP_md=$(printf "\e[1;31m") \
+	  LESS_TERMCAP_me=$(printf "\e[0m") \
+	  LESS_TERMCAP_se=$(printf "\e[0m") \
+	  LESS_TERMCAP_so=$(printf "\e[1;44;33m") \
+	  LESS_TERMCAP_ue=$(printf "\e[0m") \
+	  LESS_TERMCAP_us=$(printf "\e[1;32m") \
+	  man "$@"
+  }
+#+END_SRC
+
+**** Regular expression
+
+Syntactic sugar for using regular expression with AWK.
+
+#+BEGIN_SRC shell :tangle ./.zshrc
+  function regex {
+    gawk 'match($0,/'$1'/, ary) {print ary['${2:-'0'}']}'
+  }
+#+END_SRC
+
+**** Feedback sounds
+
+Put any sound you like. It helps making human-computer interactions
+more human.
+
+#+BEGIN_SRC shell :tangle ./.zshrc
+  function yay {
+    afplay $HOME/snd/yay.m4a > /dev/null 2>&1 &
+  }
+
+  function mwahaha {
+    afplay $HOME/snd/mwahaha.mp3 > /dev/null 2>&1 &
+  }
+#+END_SRC
+
+**** Generate a gif from a screen record
+
+I've always thought a fully fledged screen record is way too heavy
+when you just want to report basic interaction.
+
+#+BEGIN_SRC shell :tangle ./.zshrc
+  function gifgo {
+    ffmpeg -i "$1" -pix_fmt rgb24 -r 10 -s 900x600 -f gif - | gifsicle --delay=15 --optimize=3 > "$1.gif"
+  }
+#+END_SRC
+
+**** Generate and display a QR code from the clipboard
+
+A space is prepended before the first argument just for my own
+convenienve: if not, links are parsed as links by my phone and not as
+text (I prefer text).
+
+#+BEGIN_SRC shell :tangle ./.zshrc
+  function qrgo {
+    if [[ 'iTerm.app' = $TERM_PROGRAM ]]; then
+      qrencode  -o - " $(pbpaste)" | imgcat
+    else
+      echo "qrgo only works in iTerm"
+    fi
+  }
+#+END_SRC
+
+** Languages
+
+*** Python
+
+I may have installed Python but I've quite seldom used it. However the
+warning message looks like something which is awfully boring to debug
+so I put this warning here as it will help me in six months.
+
+#+BEGIN_SRC
+$ brew doctor
+
+Warning: Putting non-prefixed findutils in your path can cause python builds to fail.
+#+END_SRC
+
+#+BEGIN_SRC shell :tangle ./.zshrc
+  path+=('/usr/local/opt/python/libexec/bin'); export PATH
+#+END_SRC
+
+*** Perl
+
+#+BEGIN_SRC shell :tangle ./.login
+  export PERL5LIB="$HOME/.perl5/lib/perl5${PERL5LIB:+:${PERL5LIB}}"
+  export PERL_LOCAL_LIB_ROOT="$HOME/.perl5${PERL_LOCAL_LIB_ROOT:+:${PERL_LOCAL_LIB_ROOT}}"
+  export PERL_MB_OPT="--install_base \"$HOME/.perl5\""
+  export PERL_MM_OPT="INSTALL_BASE=$HOME/.perl5"
+#+END_SRC
+
+#+BEGIN_SRC shell :tangle ./.zshenv
+  path+=($HOME/.perl5/bin); export PATH
+#+END_SRC
+
+*** Haskell
+
+#+BEGIN_SRC shell :tangle ./.zshrc
+  path+=("$HOME/.cabal/bin"); export PATH
+#+END_SRC
+
+*** Go language
+
+See [[General organisation of my =$HOME=][what I put into my =HOME=]].
+
+#+BEGIN_SRC shell :tangle ./.login
+  export GOPATH=$HOME
+#+END_SRC
+
+*** Lilypond
+
+I put it in =$HOME/.zshenv= because it's fair enough to consider
+=lilypond= as a command. As so, it should be widely available.
+
+#+BEGIN_SRC shell :tangle ./.zshenv
+  function lilypond {
+    /Applications/LilyPond.app/Contents/Resources/bin/lilypond "$@"
+  }
+#+END_SRC
+
+*** Rust
+
+#+BEGIN_SRC shell :tangle ./.zshrc
+  path+=("$HOME/.cargo/bin"); export PATH
+#+END_SRC
+
+**** Rust path for racer
+
+#+BEGIN_SRC shell :tangle ./.login
+  export RUST_SRC_PATH=$(rustc --print sysroot)/lib/rustlib/src/rust/src
+#+END_SRC
+
+*** Clojure
+
+Clojure can be installed through brew. Leiningen settings (in
+=$HOME/.lein=) are in its own [[orgit:$HOME/.lein][separate repository]].
+
+** How to set =$PATH=
+
+How to set $PATH in Z-shell https://stackoverflow.com/a/18077919.
+
+Here I choose to set $PATH within context. That's to say, when I need
+to append something to $PATH because I'm setting up a program, I do it
+in the context of this program. I always do it from this file. As a
+result, I can always easily find where $PATH is set (it originates
+from this file) and why it's been set up this way.
+
+I have previously gone great length to use =path_helper=. I found its
+behaviour to be hard to predict so I even implemented it again in a
+simple zsh script which read =.path= as well as =.path.d/*=. I'm no
+longer amused with that kind of accidental complexity and now I prefer
+to set path here in this file so I know the context.
+
+** =$HOME= structure
+
+*** =$HOME/bin=
+
+I should only keep executable binaries in this directory; scripts should go elsewhere.
+
+*** Custom Maven location
+
+Maven location should not be custom. However I feel like it's more
+explicit to set it here so you have no doubt on my intention (look,
+I'm honest, I'm setting it here ^^).
+
+#+BEGIN_SRC shell :tangle ./.zshenv
+  export M2_HOME=$HOME/.m2
+#+END_SRC
+
+** Information system of the company I work for
+
+*** PostgreSQL
+
+Command line tools are made available with:
+
+#+BEGIN_SRC shell :tangle ./.zshrc
+  path+=('/usr/local/opt/postgresql@9.5/bin'); export PATH
+#+END_SRC
+
+**** CLI tools
+
+#+BEGIN_SRC shell :tangle ./.zshenv
+  export PGDATA="/usr/local/var/postgres"
+#+END_SRC
+
+**** Socket error, can't connect
+
+If PostgreSQL looks started in =brew services list= but you can't
+acquire a connection to its socket, perhaps it's because you've had a
+shutdown which wasn't clear for postgre. In this case, do the following:
+
+#+NAME: restart Postgre on socket error
+#+BEGIN_SRC shellell :results silent
+  rm /usr/local/var/postgresql@9.5/postmaster.pid
+  brew services restart postgresql@9.5
+#+END_SRC
+
+**** DB to latest known staging state
+
+When I frequently need to reset my state to some specific state (for
+example, when I write a migration), I no longer want to waste 90% of
+my time in idiot DB technical idle.
+
+The idea behind this script makes it super fast to reset DB state to
+laster known state. It recalls something like /resume points/ in Onyx
+or in the stream processing world. I should also automate retrieval of
+the current state of DB but I don't do it that often so I don't feel
+yet the need to save time from that.
+
+#+NAME: db_latest_known_staging
+#+BEGIN_SRC shell :tangle ./.zshrc
+  function db_latest_known_staging {
+    # Latest local version
+    db_production=$(psql -qtA -U postgres -c "SELECT datname FROM pg_database WHERE datistemplate = FALSE AND datname ILIKE 'db_production_%' ORDER BY datname DESC LIMIT 1;")
+
+    # Get hands free
+    psql -U postgres -c "SELECT pg_stat_activity.pid, pg_terminate_backend(pg_stat_activity.pid) is_terminated FROM pg_stat_activity WHERE pg_stat_activity.datname = db_development' AND pid <> pg_backend_pid();"
+
+    # Drop databases
+    psql -U postgres -c "DROP DATABASE db_development;"
+    psql -U postgres -c "DROP DATABASE db_test;"
+
+    # Set up databases as copy of latest local adserver_production
+    psql -U postgres -c "CREATE DATABASE db_development WITH TEMPLATE ${db_production} OWNER postgres;"
+    psql -U postgres -c "CREATE DATABASE db_test WITH TEMPLATE db_development OWNER postgres;"
+  }
+#+END_SRC
+
+*** Kafka
+
+#+BEGIN_SRC shell :tangle ./.zshenv
+  export KAFKA_HOME="/usr/local/kafka" # versioned link
+  export KAFKA="$KAFKA_HOME/bin"
+  export KAFKA_CONFIG="$KAFKA_HOME/config"
+#+END_SRC
+
+*** Schemata
+
+Use =avro-tools= (in brew) if you need to export schemata in avdl to
+json files in =schemas= adserver directory.
+
+*** Amazon environment variables
+
+#+BEGIN_SRC shell :tangle ./.zshrc
+  export AWS_ACCESS_KEY=`keychain-environment-variable AWS_ACCESS_KEY`
+  export AWS_SECRET_KEY=`keychain-environment-variable AWS_SECRET_KEY`
+#+END_SRC
+
+*** SRE, confluent
+
+#+BEGIN_SRC shell :tangle ./.zshenv
+  export CONFLUENT_VERSION='4.0.0'
+  export CONFLUENT_HOME=$HOME/.confluent-${CONFLUENT_VERSION}
+  path+=($CONFLUENT_HOME/bin); export PATH
+#+END_SRC
+
+** Editors and tools
+
+*** Emacs
+
+Look at the Brewfile for the options emacs was compiled with.
+
+Emacs settings are in [[orgit:$HOME/.emacs.d][another repository]].
+
+#+BEGIN_SRC shell :tangle ./.zshenv
+  export EMACS_SLACK_CLIENT_ID=`keychain-environment-variable EMACS_SLACK_CLIENT_ID`
+  export EMACS_SLACK_CLIENT_SECRET=`keychain-environment-variable EMACS_SLACK_CLIENT_SECRET`
+  export EMACS_SLACK_TOKEN=`keychain-environment-variable EMACS_SLACK_TOKEN`
+#+END_SRC
+
+Oh-my-zsh has an alias for =emacs= so it launches it or calls the server.
+
+*** IntelliJ settings repository
+
+Token for IntelliJ to manage its [[orgit:$HOME/Library/Preferences/IntelliJIdea2017.2/settingsRepository/repository/][settings repository]].
+
+#+BEGIN_SRC shell :tangle ./.zshenv
+  export INTELLI_J_SETTINGS_REPOSITORY=`keychain-environment-variable INTELLI_J_SETTINGS_REPOSITORY`
+#+END_SRC
+* Other tools to manage configuration :noexport_1:
+
+Some aspects of these other tools are interesting. Methinks some
+aren't as friendly as this documentation-based approach. Some of them
+are about deploying packages and manage files when I only want to
+document and ease my environment configuration.
+
+** GitHub dotfiles
+
+http://dotfiles.github.io/
+
+** GNU Stow
+
+http://brandon.invergo.net/news/2012-05-26-using-gnu-stow-to-manage-your-dotfiles.html
+
+This seems a sane way to go.
+
+** vcsh and myrepos
+
+https://blog.tfnico.com/2014/03/managing-dot-files-with-vcsh-and-myrepos.html
+
+** Ansible, Puppet, Chef
+
+https://blog.palcu.ro/2014/06/dotfiles-and-dev-tools-provisioned-by.html
