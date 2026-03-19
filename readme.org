@@ -1,0 +1,614 @@
+#+title: Literate environment configuration
+#+author: piotr-yuxuan
+#+language: en
+
+Declarative system configuration for a *Framework 16 AMD 7040* (NixOS,
+=C40C04=) and a *macOS work laptop* (nix-darwin, =work=).
+
+Both machines share a common base of CLI tools, fonts, Zsh, Git, GPG,
+and Emacs tooling via Home Manager.  Platform-specific layers sit on
+top.
+
+This file might be most readable in an org-mode buffer directly.  You
+can also read it from GitHub, but it won't render source block options
+like =:name= or =:tangle=.
+
+* Table of contents                                         :TOC_2_org:readme:
+- [[Goals][Goals]]
+  - [[Choices made to reach these goals][Choices made to reach these goals]]
+- [[Learnt mistakes][Learnt mistakes]]
+  - [[=$HOME= as a git repository for configuration files][=$HOME= as a git repository for configuration files]]
+  - [[Each shell function has its own =$HOME/bin= file][Each shell function has its own =$HOME/bin= file]]
+  - [[(macOS) Use =launchctl setenv= for environment variables][(macOS) Use =launchctl setenv= for environment variables]]
+  - [[Use nuclear bombs to kill a mosquito][Use nuclear bombs to kill a mosquito]]
+  - [[Spread related settings][Spread related settings]]
+- [[Why Nix][Why Nix]]
+  - [[Evolving from Emacs org-mode][Evolving from Emacs org-mode]]
+  - [[Why not chezmoi or mise][Why not chezmoi or mise]]
+- [[Repository layout][Repository layout]]
+  - [[Architecture overview][Architecture overview]]
+- [[Getting started][Getting started]]
+- [[Day-to-day commands][Day-to-day commands]]
+  - [[Rebuild after editing][Rebuild after editing]]
+  - [[Update flake inputs][Update flake inputs]]
+  - [[Garbage-collect old generations][Garbage-collect old generations]]
+  - [[List generations][List generations]]
+  - [[Roll back][Roll back]]
+- [[Testing changes][Testing changes]]
+  - [[Build without switching][Build without switching]]
+  - [[Diff before switching][Diff before switching]]
+  - [[Test in a VM (NixOS only)][Test in a VM (NixOS only)]]
+  - [[Flake evaluation check][Flake evaluation check]]
+- [[Troubleshooting][Troubleshooting]]
+  - [["experimental features nix-command flakes are not enabled"]["experimental features nix-command flakes are not enabled"]]
+  - [[LUKS passphrase prompt uses wrong keyboard layout][LUKS passphrase prompt uses wrong keyboard layout]]
+  - [[Home Manager: "file already exists"][Home Manager: "file already exists"]]
+  - [[Secure Boot: "not in Setup mode"][Secure Boot: "not in Setup mode"]]
+  - [[Nix store disk space][Nix store disk space]]
+  - [[Homebrew issues (macOS)][Homebrew issues (macOS)]]
+  - [[Password change (NixOS)][Password change (NixOS)]]
+  - [[Fonts not showing up][Fonts not showing up]]
+  - [[Secrets file][Secrets file]]
+- [[Appendices][Appendices]]
+  - [[Other tools to manage configuration][Other tools to manage configuration]]
+
+* Goals                                                              :readme:
+
+  0. ([[https://en.wikipedia.org/wiki/KISS_principle][KISS principle]]) Keep the configuration simple, stupid: most
+     systems work better when kept simple. No need to change mindset,
+     no need to burden beginners with something abstruse. <<goal-0>>
+
+  1. ([[https://en.wikipedia.org/wiki/Principle_of_locality][principle of locality]]) Keep the configuration self-contained in
+     one place. Different settings related to the same thing should be
+     close to each other. No other, hidden data are needed for
+     understanding and nothing else should produce side-effects.
+     <<goal-1>>
+
+  2. ([[https://en.wikipedia.org/wiki/Predictability][predictability]]) The environment should keep the same behaviour
+     no matter how many times the configuration is applied. When
+     something goes wrong, roll back to a previous state. <<goal-2>>
+
+  3. ([[https://en.oxforddictionaries.com/definition/Declarative][declarativeness]]) Keep track of the reasoning which led to
+     decisions and choices. The configuration is /what/ and /why/, not
+     /how/. <<goal-3>>
+
+  Non goal: making this file portable and auto-installable over the
+  network on new computers.
+
+  - It would be rather useless: I work on one or two computers every
+    day and don't change that often.
+  - It would contradict [[goal-0][the first principle]]. This is not an automatic
+    installation script — write one if you want so.
+
+** Choices made to reach these goals
+
+  0. [[goal-0][KISS principle]]
+     - Use Nix flakes to pin every dependency. The lock file is the
+       single source of truth; no imperative =nix-channel= state.
+     - GUI apps on macOS stay managed by Homebrew through a
+       declarative =Brewfile=: no point wrapping them in Nix derivations
+       when =brew bundle= is idempotent already.
+     - Emacs configuration lives in its own repository and is cloned
+       into =~/.emacs.d/=. It has its own lifecycle.
+
+  1. [[goal-1][Locality]]
+     - One repository for all hosts. A shared =home/base.nix= holds
+       every cross-platform setting; host-specific overrides live next
+       to it.
+     - Dotfiles and config snippets that can't (or shouldn't) be
+       expressed in Nix are kept in =config/= and symlinked by Home
+       Manager activation scripts.
+
+  2. [[goal-2][Predictability]]
+     - =nixos-rebuild switch= and =darwin-rebuild switch= are idempotent.
+       The Nix store guarantees bit-for-bit reproducibility.
+     - Every rebuild produces a numbered /generation/ that can be rolled
+       back to, or booted from.
+     - Use git to version this repository so you can always check out
+       a prior state.
+
+  3. [[goal-3][Declarativeness]]
+     - Use git to keep track of changes in time. You can see
+       differences from the last commit as well as =git bisect= when you
+       don't understand something weird.
+     - Use literate documentation to explain all the whereabouts of
+       the configuration.
+
+* Learnt mistakes                                                    :readme:
+
+Lessons accumulated over several years of managing personal
+environments — first with raw dotfiles, now with Nix.
+
+** =$HOME= as a git repository for configuration files
+
+Why it's not a good idea:
+
+- Quite a lot of programs behave differently when they are in a git
+  repository.
+- It's tedious to gitignore everything then un-ignore only specific
+  files. Last time I checked I ended up with a long, inexplicable
+  =.gitignore=.
+- Do you feel completely quiet doing =git bisect= or =git reset --hard= on
+  your =$HOME=? Why not trying =git clean -x= in a deep subdirectory
+  whilst you think it's a repository but it isn't?
+
+** Each shell function has its own =$HOME/bin= file
+
+Why it's not a good idea:
+
+- Is there any advantage of doing it that way in the context of a
+  shell?
+- It strongly separates the function from where it's used.
+- It can help create boring rookie bugs like fork bombs.
+
+** (macOS) Use =launchctl setenv= for environment variables
+
+Why it's not a good idea:
+
+- Most GUI apps don't refresh their environment once started.
+- =launchctl= defines the environment for all macOS applications
+  (including the terminal emulator) and then you append additional
+  variables in your shell startup files. It's pretty useless to expose
+  CLI variables to graphical applications.
+- The proprietary Apple environment APIs aren't stable; stay the most
+  Unix-like possible.
+
+** Use nuclear bombs to kill a mosquito
+
+The ease of use is not interesting in front of the simplicity of use.
+Don't automate overly, don't add too much incidental complexity.
+Perhaps you want something awfully difficult and complex so it looks
+more professional.
+
+** Spread related settings
+
+I previously modified =/etc/*= and six months later I lost one full hour
+because of an unwise side-effect. As a result, I got the strong
+opinion that no side-effect should be defined out of the
+configuration. Any code, data, or settings which are related to one
+another should be physically close or in the same location.
+
+In NixOS this lesson maps naturally to the module system: everything a
+service needs is declared in one place, and =nixos-rebuild= is the only
+way to apply it.
+
+* Why Nix                                                            :readme:
+
+This repository is the successor of a [[https://github.com/piotr-yuxuan/environment-configuration][literate macOS configuration]]
+that lived as a single =readme.org= tangled with Emacs Babel. That
+approach served well for years, but moving to NixOS made it clear that
+a purpose-built declarative tool was a better fit.
+
+The core appeal of Nix:
+
+- *Repeatable builds.* A flake lock file pins every input to an exact
+  revision. Two machines (or the same machine six months apart)
+  produce identical results from the same lock — no "works on my
+  laptop" drift.
+- *Declarative system configuration.* A NixOS or nix-darwin rebuild
+  converges the entire system — packages, services, kernel parameters,
+  user environment — to the state described in a handful of =.nix=
+  files. Nothing is left implicit.
+- *Atomic rollback.* Every rebuild creates a generation that can be
+  activated instantly. On NixOS the boot menu lists all recent
+  generations, so a bad change never bricks the machine.
+- *Cross-platform.* The same Home Manager modules run on NixOS and macOS
+  (via nix-darwin), so shared tooling only needs to be written once.
+
+** Evolving from Emacs org-mode
+
+The previous repository used org-mode literate programming: one giant
+=readme.org= contained prose, shell snippets, and Emacs Lisp blocks that
+were tangled into dotfiles with =org-babel-tangle=.
+
+What worked:
+
+- Prose and configuration lived side by side — decisions were
+  documented where they were made.
+- Org tags (=:macos:=, =:tty:=, =:language:=) gave a navigable taxonomy.
+- Evaluating blocks in-place turned the readme into a REPL for system
+  administration.
+
+What didn't scale:
+
+- Tangling is a /generation/ step, not an /enforcement/ step. Nothing
+  stopped the running system from drifting once the files were copied.
+- Adding a new package meant editing prose, adding a =brew install=
+  line, and hoping you'd remember to tangle + copy. Nix makes the
+  package list the source of truth and installs it atomically.
+- Cross-machine differences were handled with =if= guards inside shell
+  blocks. Nix modules compose host-specific overlays cleanly.
+- The whole approach depended on Emacs being available. Bootstrapping
+  a fresh machine required installing Emacs first, cloning the repo,
+  and tangling — a fragile chain for disaster recovery.
+
+The philosophical goals (locality, declarativeness, simplicity)
+haven't changed; only the tool that enforces them has.
+
+** Why not chezmoi or mise
+
+[[https://www.chezmoi.io/][chezmoi]] is a polished dotfile manager. It handles templates, secrets,
+and multi-machine diffs well. But it manages /files/, not /system state/.
+It can place a =.zshrc= but cannot install Zsh, configure a systemd
+service, partition a disk, or pin a kernel version. For a full-system
+declaration, Nix is the right layer.
+
+[[https://mise.jdx.dev/][mise]] (formerly rtx) is a polyglot runtime manager — a modern
+replacement for asdf, nvm, pyenv, and friends. It excels at
+per-project tool versions but doesn't attempt system configuration. On
+NixOS the Nix store already provides hermetic, per-project tool
+versions via =nix develop= / =devenv= / =direnv=, so mise would be a
+redundant layer. On macOS it could complement Nix for teams not ready
+to adopt flakes, but for a personal environment that already runs
+nix-darwin it adds no value.
+
+Both tools solve real problems. They simply solve /different/ problems
+than the ones this repository addresses.
+
+* Repository layout
+
+#+begin_example
+flake.nix                 # Flake entry-point — defines both hosts
+disko-config.nix          # LUKS + LVM + Btrfs partitioning (C40C04)
+hardware-configuration.nix
+fonts.nix                 # Font packages shared across hosts
+hosts/
+  C40C04.nix              # NixOS system config (GNOME, Secure Boot, …)
+  work.nix                # nix-darwin system config (macOS defaults, …)
+home/
+  base.nix                # Cross-platform Home Manager (Zsh, Git, GPG, …)
+  C40C04.nix              # HM overrides for NixOS (Emacs, GUI apps, …)
+  work.nix                # HM overrides for macOS (Go, GitLab, Brewfile, …)
+config/                   # Dotfiles and config snippets
+  Brewfile                # Homebrew casks & formulae (macOS only)
+  before.zshenv           # Sourced in ~/.zshenv
+  after.zshrc             # Sourced in interactive shells
+  …
+packages/                 # Custom Nix derivations (fonts)
+scripts/                  # Activation helpers
+docs/
+  framework-16-nixos.org  # Full NixOS install guide
+  macos-nix-darwin.org    # Full macOS setup guide
+#+end_example
+
+** Architecture overview
+
+The flake defines two top-level outputs:
+
+- =nixosConfigurations.C40C04=: full NixOS system (kernel, GNOME, Secure
+  Boot via Lanzaboote, LUKS via Disko, hardware tweaks from
+  =nixos-hardware=). Home Manager is loaded as a NixOS module.
+- =darwinConfigurations.work=: nix-darwin system (macOS defaults, Nix
+  daemon, shell registration). Home Manager is loaded as a darwin
+  module.
+
+Both hosts import =home/base.nix= (cross-platform CLI tools, Zsh, Git,
+GPG, Starship, direnv, etc.) plus a host-specific overlay
+(=home/C40C04.nix= or =home/work.nix=).
+
+The flake pins two channels:
+- =nixpkgs= (stable =nixos-25.11=): system foundation.
+- =nixpkgs-unstable=: bleeding-edge packages passed as =unstable= via
+  =extraSpecialArgs=.
+
+On macOS, GUI apps are managed through Homebrew (=config/Brewfile=): the
+Home Manager activation runs =brew bundle install= automatically.
+
+Disk layout on C40C04 (=disko-config.nix=):
+
+#+begin_example
+/dev/nvme0n1
+├── ESP (1 GB, vfat)  → /boot
+└── LUKS (cryptroot)
+    └── LVM vg-C40C04
+        ├── lv-swap (72 GB, swap, resume device for hibernate)
+        └── lv-btrfs (rest)
+            ├── @root         →  /
+            ├── @caocoa       →  /home/caocoa
+            ├── @caocoa-cache →  /home/caocoa/.cache
+            ├── @caocoa-trash →  /home/caocoa/.local/share/Trash
+            └── @.snapshots   →  /.snapshots
+#+end_example
+
+User accounts on NixOS use =mutableUsers = false=: passwords are managed
+exclusively through hashed password files and =nixos-rebuild=.
+
+* Getting started
+
+Pick the guide that matches your situation:
+
+- [[file:docs/framework-16-nixos.org][Framework 16: NixOS from Ubuntu live USB]]:
+  boot a live USB, partition with Disko (LUKS + LVM + Btrfs), install
+  NixOS, enrol Secure Boot keys, and clone your repos.
+- [[file:docs/macos-nix-darwin.org][macOS work machine: nix-darwin]]:
+  install Nix + Homebrew + nix-darwin on a brand-new Apple Silicon Mac,
+  build the flake, and set up your user environment.
+
+* Day-to-day commands                                               :update:
+
+** Rebuild after editing
+
+#+begin_src zsh
+# NixOS
+cd ~/nixos && sudo nixos-rebuild switch --flake .#C40C04
+
+# macOS
+cd ~/nixos && darwin-rebuild switch --flake .#work
+#+end_src
+
+** Update flake inputs
+
+#+begin_src zsh
+cd ~/nixos
+
+# Update everything (nixpkgs, home-manager, disko, lanzaboote, …) nix
+flake update
+
+# Update a single input nix flake update nixpkgs nix flake update
+home-manager
+#+end_src
+
+Then rebuild and switch to apply.
+
+** Garbage-collect old generations
+
+Automatic weekly GC is configured (deletes generations older than 30
+days). To trigger it manually:
+
+#+begin_src zsh
+sudo nix-collect-garbage --delete-older-than 14d
+
+# Also remove old boot entries (NixOS only) sudo nixos-rebuild boot
+--flake .#C40C04
+#+end_src
+
+** List generations
+
+#+begin_src zsh
+# NixOS system generations
+sudo nix-env --list-generations --profile /nix/var/nix/profiles/system
+
+# Home Manager generations
+home-manager generations
+#+end_src
+
+** Roll back
+
+#+begin_src zsh
+# NixOS — previous generation
+sudo nixos-rebuild switch --rollback
+
+# Home Manager — previous generation
+home-manager switch --rollback
+#+end_src
+
+*** How rollback works
+
+Every =nixos-rebuild switch= or =home-manager switch= creates a new
+*generation*, a snapshot of the entire system/user closure. Rolling back
+activates the previous generation immediately. On NixOS, old
+generations also appear in the boot menu, so you can recover even if
+the latest generation fails to boot.
+
+* Testing changes
+
+** Build without switching
+
+#+begin_src zsh
+# NixOS — build only
+sudo nixos-rebuild build --flake .#C40C04
+
+# macOS — build only
+darwin-rebuild build --flake .#work
+#+end_src
+
+** Diff before switching
+
+Compare the running system with the newly built closure to see which
+packages change:
+
+#+begin_src zsh
+# After `nixos-rebuild build`:
+nix store diff-closures /run/current-system ./result
+#+end_src
+
+*** Reading the diff output
+
+=nix store diff-closures= prints lines like:
+
+#+begin_example
+python3: 3.11.8 → 3.11.9, +0.2 MiB
+#+end_example
+
+*→* means an upgrade, *+* a new package, *−* a removal.  This is the
+quickest way to audit what a rebuild will change before committing to
+=switch=.
+
+** Test in a VM (NixOS only)
+
+#+begin_src zsh
+nixos-rebuild build-vm --flake .#C40C04
+./result/bin/run-*-vm
+#+end_src
+
+*** VM testing tips
+
+- The VM gets its own disk image; it does not touch real filesystems.
+- Log in as =caocoa=. Because the real system uses =hashedPasswordFile=
+  pointing to =/etc/secrets/caocoa-password= (which does not exist
+  inside the VM), you may need to temporarily add
+  =users.users.caocoa.password = "test";= in a local override.
+- The VM opens a QEMU window — you need a graphical session or VNC.
+- Pass =-m 4096= to give the VM more RAM if GNOME feels sluggish.
+
+** Flake evaluation check
+
+Verify the flake evaluates without errors (no full build):
+
+#+begin_src zsh
+nix flake check
+#+end_src
+
+* Troubleshooting
+
+** "experimental features nix-command flakes are not enabled"
+
+Pass it inline:
+
+#+begin_src zsh
+nix --experimental-features "nix-command flakes" <command>
+#+end_src
+
+Or persist it:
+
+#+begin_src zsh
+mkdir -p ~/.config/nix
+echo 'experimental-features = nix-command flakes' >> ~/.config/nix/nix.conf
+#+end_src
+
+** LUKS passphrase prompt uses wrong keyboard layout
+
+Rebuild and reboot:
+
+#+begin_src zsh
+sudo nixos-rebuild boot --flake .#C40C04 && sudo reboot
+#+end_src
+
+*** How the keyboard layout reaches the initrd
+
+=console.useXkbConfig = true= derives the console keymap from
+=services.xserver.xkb.layout = "fr"= / =variant = "oss"=.
+=console.earlySetup = true= ensures this keymap is baked into the initrd
+so it is available before the root filesystem is mounted, i.e. at the
+LUKS passphrase prompt.
+
+** Home Manager: "file already exists"
+
+Home Manager backs up conflicting files as =*.hm-backup=:
+
+#+begin_src zsh
+# List backups
+find ~ -name '*.hm-backup' -ls
+
+# Remove them once verified
+find ~ -name '*.hm-backup' -delete
+#+end_src
+
+If HM refuses to proceed entirely, remove the offending file manually
+and re-run the switch.
+
+** Secure Boot: "not in Setup mode"
+
+1. Reboot into UEFI firmware (*F2*).
+2. Clear/reset the Secure Boot keys → puts firmware in "Setup Mode".
+3. Save and reboot; Lanzaboote auto-enrols its keys.
+4. Enter UEFI again and *enable Secure Boot*.
+
+** Nix store disk space
+
+#+begin_src zsh
+sudo btrfs filesystem usage /
+sudo nix-collect-garbage --delete-older-than 7d
+sudo nix store optimise
+#+end_src
+
+*** Btrfs compression ratio
+
+The Btrfs subvolumes use =compress=zstd=.  To see the actual
+compression ratio:
+
+#+begin_src zsh
+sudo compsize /
+#+end_src
+
+This shows how much physical space each subvolume occupies versus its
+logical size.
+
+** Homebrew issues (macOS)
+
+#+begin_src zsh
+brew doctor                  # diagnose common problems
+brew update && brew upgrade  # refresh everything
+brew reinstall --cask <name> # force-reinstall a broken cask
+
+# Re-run the Brewfile manually
+brew bundle install --file ~/nixos/config/Brewfile
+#+end_src
+
+** Password change (NixOS)
+
+=passwd= is a no-op (=mutableUsers = false=).  Change the hashed
+password file and rebuild:
+
+#+begin_src zsh
+echo "new-password" | mkpasswd -m sha-512 -s \
+  | sudo tee /etc/secrets/caocoa-password > /dev/null
+sudo nixos-rebuild switch --flake .#C40C04
+#+end_src
+
+** Fonts not showing up
+
+#+begin_src zsh
+fc-list | grep -i iosevka
+#+end_src
+
+*** Platform-specific font troubleshooting
+
+*NixOS*: Fonts are installed via Home Manager (=home.packages=) and
+made available through fontconfig.  Rebuild and *log out / log in* —
+GNOME reloads fontconfig on session start.
+
+*macOS*: nix-darwin copies font files to =/Library/Fonts/Nix Fonts/=.
+macOS Core Text discovers them after =darwin-rebuild switch=.  If a
+font still doesn't appear, try restarting the app or running:
+
+#+begin_src zsh
+sudo atsutil databases -remove  # reset font caches
+#+end_src
+
+** Secrets file
+
+Tokens are loaded from =~/.zshenv.secrets= (sourced in every Zsh
+session).  This file is *gitignored* — create it manually:
+
+#+begin_src zsh
+cat > ~/.zshenv.secrets << 'EOF'
+export GITLAB_PERSONAL_ACCESS_TOKEN='glpat-…'
+# add other tokens here
+EOF
+chmod 600 ~/.zshenv.secrets
+#+end_src
+
+* Appendices
+
+** Other tools to manage configuration
+
+Some aspects of these other tools are interesting. Some aren't as
+friendly; some are about deploying packages when the goal here is only
+to document and ease environment configuration.
+
+*** Nix and NixOS
+
+What this repository uses now. The module system and flakes give
+declarativeness and reproducibility for free: no literate tangling
+step needed. The trade-off is a steeper learning curve and a language
+(Nix) that takes getting used to.
+
+*** GitHub dotfiles
+
+http://dotfiles.github.io/
+
+*** GNU Stow
+
+http://brandon.invergo.net/news/2012-05-26-using-gnu-stow-to-manage-your-dotfiles.html
+
+A sane way to manage symlinks when you don't want a full-blown
+configuration manager.
+
+*** vcsh and myrepos
+
+https://blog.tfnico.com/2014/03/managing-dot-files-with-vcsh-and-myrepos.html
+
+*** Ansible, Puppet, Chef
+
+https://blog.palcu.ro/2014/06/dotfiles-and-dev-tools-provisioned-by.html
