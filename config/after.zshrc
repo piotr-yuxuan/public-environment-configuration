@@ -1,6 +1,29 @@
 # zsh-init-content.sh — loaded by home-manager via programs.zsh.initContent.
 # Runs in interactive shells after compinit.
 
+# ── Shell options ──────────────────────────────────────────────────
+setopt AUTO_CD              # Type a directory name to cd into it.
+setopt CORRECT              # Offer spelling correction for commands.
+setopt EXTENDED_GLOB        # Enable #, ~, ^ as glob operators.
+setopt GLOB_DOTS            # Include dotfiles in glob matches.
+setopt INTERACTIVE_COMMENTS # Allow # comments in interactive shell.
+setopt NO_BEEP              # Silence terminal bell.
+setopt PIPE_FAIL            # Pipeline exit code is the rightmost non-zero.
+setopt HIST_FIND_NO_DUPS    # Skip duplicates during Ctrl-R search.
+setopt HIST_REDUCE_BLANKS   # Strip superfluous blanks before recording.
+
+# ── Emacs key bindings ─────────────────────────────────────────────
+bindkey -e
+
+# ── Completion styling ─────────────────────────────────────────────
+zstyle ':completion:*' menu select
+zstyle ':completion:*' matcher-list 'm:{a-zA-Z}={A-Za-z}'
+zstyle ':completion:*' list-colors "${(s.:.)LS_COLORS}"
+zstyle ':completion:*' group-name ''
+zstyle ':completion:*:descriptions' format '%F{green}-- %d --%f'
+zstyle ':completion:*' use-cache on
+zstyle ':completion:*' cache-path "$HOME/.zcompcache"
+
 # ── fzf keybindings ────────────────────────────────────────────────
 export FZF_DEFAULT_OPTS="--multi"
 source <(fzf --zsh)

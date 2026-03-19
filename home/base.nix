@@ -184,6 +184,21 @@
         src = pkgs.nix-zsh-completions; }
     ];
 
+    # ── History — keep everything, delete nothing ──────────────────
+    history = {
+      size = 10000000;
+      save = 10000000;
+      extended = true;              # :start:elapsed;command format
+      share = true;                 # share across sessions (implies INC_APPEND)
+      ignoreDups = true;            # skip consecutive duplicates
+      ignoreSpace = true;           # prefix with space to omit from history
+      expireDuplicatesFirst = true; # safety net if size limit is ever hit
+    };
+
+    shellAliases = {
+      cat = "bat --paging never";
+    };
+
     # ~/.zshenv — sourced for every zsh invocation
     envExtra = lib.fileContents ../config/before.zshenv;
 
