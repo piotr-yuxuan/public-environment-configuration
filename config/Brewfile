@@ -1,0 +1,42 @@
+# Used by Home Manager and should stay in sync with it.
+
+tap "brunobonacci/lazy-tools"
+tap "jimeh/emacs-builds"
+
+brew "jenv" # Consider pkgs.jdk + home-manager PATH management
+brew "lft" # kept — not found in nixpkgs 25.11
+brew "likec4" # vs-code extension dependency
+brew "texlive" # Complex meta-package; brew's texlive handles macOS
+               # font/path registration more reliably than nixpkgs
+               # texlive.combined.*
+brew "zsh-autocomplete" # No equivalent home-manager module
+
+# Fonts are managed by nix-darwin (fonts.packages in hosts/work.nix),
+# which rsyncs them to /Library/Fonts/Nix Fonts/ — visible to Core Text
+# and all macOS apps. No Homebrew casks needed.
+
+# Keep GUI apps handled by Brewfile for best macOS integration.
+#
+# Emacs: do not replace with nixpkgs emacs. Emacs is installed via
+# jimeh/emacs-builds, which provides nightly and release .app bundles
+# with native compilation and macOS-native UI optimisations. See:
+# https://github.com/jimeh/emacs-builds
+cask "jimeh/emacs-builds/emacs-app"
+cask "appcleaner"
+cask "firefox@developer-edition"
+cask "flux-app"
+cask "google-chrome"
+cask "google-chrome@canary"
+cask "inkscape"
+cask "iterm2"
+cask "itraffic"
+cask "libreoffice"
+cask "macfuse"
+cask "notunes"
+cask "rectangle"
+cask "slack@beta"
+cask "visual-studio-code" # macOS GUI install; extensions managed via vscode "..." below
+cask "vlc"
+
+vscode "github.copilot-chat"
+vscode "likec4.likec4-vscode"

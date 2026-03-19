@@ -1,0 +1,43 @@
+# NixOS theme for macchina
+
+[palette]
+type = "Dark"
+
+[palette.light]
+foreground   = "#5277C3"
+
+[palette.dark]
+foreground   = "#7EBAE4"
+
+[bar]
+glyph    = "●"
+symbol_open  = "["
+symbol_close = "]"
+visible  = false
+
+[box]
+border = "plain"
+visible = true
+title = " NixOS "
+
+[box.inner_margin]
+x = 1
+y = 0
+
+[custom_ascii]
+color = "blue"
+path = "~/.config/macchina/nixos-ascii.txt"
+
+[keys]
+host       = "Host"
+kernel     = "Kernel"
+distro     = "Distro"
+desktop_environment = "DE"
+packages   = "Packages"
+shell      = "Shell"
+terminal   = "Terminal"
+uptime     = "Uptime"
+processor  = "CPU"
+processor_usage = "CPU Load"
+memory     = "Memory"
+disk_space = "Disk"
