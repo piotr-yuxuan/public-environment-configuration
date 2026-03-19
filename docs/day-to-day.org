@@ -1,0 +1,274 @@
+#+title: Day-to-day operations
+#+author: piotr-yuxuan
+
+Commands for rebuilding, updating, rolling back, testing, and
+troubleshooting.
+
+* Rebuild after editing
+
+#+begin_src zsh
+# NixOS
+cd ~/nixos && sudo nixos-rebuild switch --flake .#C40C04
+
+# macOS
+cd ~/nixos && darwin-rebuild switch --flake .#work
+#+end_src
+
+* Update flake inputs
+
+#+begin_src zsh
+cd ~/nixos
+
+# Update everything (nixpkgs, home-manager, disko, lanzaboote, …)
+nix flake update
+
+# Update a single input
+nix flake update nixpkgs
+nix flake update home-manager
+#+end_src
+
+Then rebuild and switch to apply.
+
+* Garbage-collect old generations
+
+Automatic weekly GC is configured (deletes generations older than 30
+days).  To trigger it manually:
+
+#+begin_src zsh
+sudo nix-collect-garbage --delete-older-than 14d
+
+# Also remove old boot entries (NixOS only)
+sudo nixos-rebuild boot --flake .#C40C04
+#+end_src
+
+* List generations
+
+#+begin_src zsh
+# NixOS system generations
+sudo nix-env --list-generations --profile /nix/var/nix/profiles/system
+
+# Home Manager generations
+home-manager generations
+#+end_src
+
+* Roll back
+
+#+begin_src zsh
+# NixOS — previous generation
+sudo nixos-rebuild switch --rollback
+
+# Home Manager — previous generation
+home-manager switch --rollback
+#+end_src
+
+** How rollback works
+
+Every =nixos-rebuild switch= or =home-manager switch= creates a new
+*generation*, a snapshot of the entire system/user closure.  Rolling
+back activates the previous generation immediately.  On NixOS, old
+generations also appear in the boot menu, so you can recover even if
+the latest generation fails to boot.
+
+* Keeping macOS up to date                                          :macos:
+
+Homebrew casks and formulae are declared in =config/Brewfile= and
+applied automatically on every =darwin-rebuild switch= via a Home
+Manager activation script.  To run it manually:
+
+#+begin_src zsh
+brew bundle install --file ~/nixos/config/Brewfile
+#+end_src
+
+To upgrade everything and clean up stale downloads:
+
+#+begin_src zsh
+brew update
+brew upgrade
+brew upgrade --cask --greedy   # reinstall latest version of
+                               # unversioned casks — takes more time
+brew cleanup -s
+echo "you should commit your environment configuration"
+#+end_src
+
+When something goes wrong:
+
+#+begin_src zsh
+brew doctor                  # diagnose common problems
+brew reinstall --cask <name> # force-reinstall a broken cask
+#+end_src
+
+* Build without switching
+
+#+begin_src zsh
+# NixOS — build only
+sudo nixos-rebuild build --flake .#C40C04
+
+# macOS — build only
+darwin-rebuild build --flake .#work
+#+end_src
+
+* Diff before switching
+
+Compare the running system with the newly built closure to see which
+packages change:
+
+#+begin_src zsh
+# After `nixos-rebuild build`:
+nix store diff-closures /run/current-system ./result
+#+end_src
+
+** Reading the diff output
+
+=nix store diff-closures= prints lines like:
+
+#+begin_example
+python3: 3.11.8 → 3.11.9, +0.2 MiB
+#+end_example
+
+*→* means an upgrade, *+* a new package, *−* a removal.  This is the
+quickest way to audit what a rebuild will change before committing to
+=switch=.
+
+* Test in a VM (NixOS only)
+
+#+begin_src zsh
+nixos-rebuild build-vm --flake .#C40C04
+./result/bin/run-*-vm
+#+end_src
+
+** VM testing tips
+
+- The VM gets its own disk image; it does not touch real filesystems.
+- Log in as =caocoa=.  Because the real system uses =hashedPasswordFile=
+  pointing to =/etc/secrets/caocoa-password= (which does not exist inside
+  the VM), you may need to temporarily add
+  =users.users.caocoa.password = "test";= in a local override.
+- The VM opens a QEMU window — you need a graphical session or VNC.
+- Pass =-m 4096= to give the VM more RAM if GNOME feels sluggish.
+
+* Flake evaluation check
+
+Verify the flake evaluates without errors (no full build):
+
+#+begin_src zsh
+nix flake check
+#+end_src
+
+* Troubleshooting
+
+** "experimental features nix-command flakes are not enabled"
+
+Pass it inline:
+
+#+begin_src zsh
+nix --experimental-features "nix-command flakes" <command>
+#+end_src
+
+Or persist it:
+
+#+begin_src zsh
+mkdir -p ~/.config/nix
+echo 'experimental-features = nix-command flakes' >> ~/.config/nix/nix.conf
+#+end_src
+
+** LUKS passphrase prompt uses wrong keyboard layout
+
+Rebuild and reboot:
+
+#+begin_src zsh
+sudo nixos-rebuild boot --flake .#C40C04 && sudo reboot
+#+end_src
+
+*** How the keyboard layout reaches the initrd
+
+=console.useXkbConfig = true= derives the console keymap from
+=services.xserver.xkb.layout = "fr"= / =variant = "oss"=.
+=console.earlySetup = true= ensures this keymap is baked into the initrd
+so it is available before the root filesystem is mounted, i.e. at the
+LUKS passphrase prompt.
+
+** Home Manager: "file already exists"
+
+Home Manager backs up conflicting files as =*.hm-backup=:
+
+#+begin_src zsh
+# List backups
+find ~ -name '*.hm-backup' -ls
+
+# Remove them once verified
+find ~ -name '*.hm-backup' -delete
+#+end_src
+
+If HM refuses to proceed entirely, remove the offending file manually
+and re-run the switch.
+
+** Secure Boot: "not in Setup mode"
+
+1. Reboot into UEFI firmware (*F2*).
+2. Clear/reset the Secure Boot keys → puts firmware in "Setup Mode".
+3. Save and reboot; Lanzaboote auto-enrols its keys.
+4. Enter UEFI again and *enable Secure Boot*.
+
+** Nix store disk space
+
+#+begin_src zsh
+sudo btrfs filesystem usage /
+sudo nix-collect-garbage --delete-older-than 7d
+sudo nix store optimise
+#+end_src
+
+*** Btrfs compression ratio
+
+The Btrfs subvolumes use =compress=zstd=.  To see the actual
+compression ratio:
+
+#+begin_src zsh
+sudo compsize /
+#+end_src
+
+This shows how much physical space each subvolume occupies versus its
+logical size.
+
+** Password change (NixOS)
+
+=passwd= is a no-op (=mutableUsers = false=).  Change the hashed
+password file and rebuild:
+
+#+begin_src zsh
+echo "new-password" | mkpasswd -m sha-512 -s \
+  | sudo tee /etc/secrets/caocoa-password > /dev/null
+sudo nixos-rebuild switch --flake .#C40C04
+#+end_src
+
+** Fonts not showing up
+
+#+begin_src zsh
+fc-list | grep -i iosevka
+#+end_src
+
+*** Platform-specific font troubleshooting
+
+*NixOS*: Fonts are installed via Home Manager (=home.packages=) and
+made available through fontconfig.  Rebuild and *log out / log in* —
+GNOME reloads fontconfig on session start.
+
+*macOS*: nix-darwin copies font files to =/Library/Fonts/Nix Fonts/=.
+macOS Core Text discovers them after =darwin-rebuild switch=.  If a
+font still doesn't appear, try restarting the app or running:
+
+#+begin_src zsh
+sudo atsutil databases -remove  # reset font caches
+#+end_src
+
+** Secrets file
+
+Tokens are loaded from =~/.zshenv.secrets= (sourced in every Zsh
+session).  This file is *gitignored* — create it manually:
+
+#+begin_src zsh
+cat > ~/.zshenv.secrets << 'EOF'
+export GITLAB_PERSONAL_ACCESS_TOKEN='glpat-…'
+# add other tokens here
+EOF
+chmod 600 ~/.zshenv.secrets
+#+end_src

@@ -1,0 +1,362 @@
+#+title: Tips and recipes
+#+author: piotr-yuxuan
+
+A collection of shell snippets, utilities, and hard-won notes
+accumulated over several years of environment tinkering first on macOS
+with raw dotfiles, now across NixOS and macOS with Nix.
+
+Some of these are timeless (Z-shell history options, GPG terminal
+setup); others are macOS-specific conveniences. Defunct tools
+(oh-my-zsh, zplug, jenv) are kept in the [[*Graveyard][Graveyard]] for posterity.
+
+* Z-shell                                                              :tty:
+
+** History configuration
+
+Large, deduplicated, shared history is one of the highest-leverage
+shell tweaks. These options are set in =config/after.zshrc= via Home
+Manager now, but the reasoning still applies.
+
+#+begin_src zsh
+export HISTSIZE=10000000
+export HISTFILESIZE=100000000
+export HISTTIMEFORMAT="%d/%m/%y %T "
+
+setopt EXTENDED_HISTORY          # Write ":start:elapsed;command" format.
+setopt INC_APPEND_HISTORY        # Write immediately, not on shell exit.
+setopt SHARE_HISTORY             # Share history between all sessions.
+setopt HIST_EXPIRE_DUPS_FIRST    # Expire duplicates first when trimming.
+setopt HIST_IGNORE_DUPS          # Don't record consecutive duplicates.
+setopt HIST_IGNORE_ALL_DUPS      # Delete old entry if new is a duplicate.
+setopt HIST_FIND_NO_DUPS         # Don't display previously found lines.
+setopt HIST_IGNORE_SPACE         # Don't record entries starting with a space.
+setopt HIST_SAVE_NO_DUPS         # Don't write duplicate entries to the file.
+setopt HIST_REDUCE_BLANKS        # Remove superfluous blanks before recording.
+#+end_src
+
+** Don't compile Z-shell startup files
+
+It looks tempting to =zcompile= startup files to boost start-up time.
+However, whenever a script silently appends to a Z-shell configuration
+file (e.g. an installer adding something to =$PATH=), the source file
+gets a newer timestamp than the compiled file and takes precedence.
+Keep it simple: don't compile startup files so you can modify them
+without thinking about it.
+
+** Close matching delimiter
+
+#+begin_src zsh
+# If using zsh-autopair:
+source $GH/hlissner/zsh-autopair/autopair.zsh
+autopair-init
+#+end_src
+
+* GPG                                                                  :tty:
+
+#+begin_src zsh
+export GPG_TTY=$(tty)
+#+end_src
+
+This is set automatically by Home Manager (=programs.gpg.enable=) on
+both platforms.
+
+* SSH configuration
+
+Express only connection-specific settings here. Git SSH keys are
+handled through gitconfig's =includeIf= and per-host =IdentityFile= lines.
+
+A representative =~/.ssh/config= pattern:
+
+#+begin_src ssh-config
+Host *
+  UseKeychain           yes    # macOS keychain integration
+  AddKeysToAgent        yes
+
+Host github.com
+  HostName              github.com
+  User                  git
+  IdentityFile          ~/.ssh/id_ed25519
+  ServerAliveInterval   20
+  ForwardAgent          no
+
+Host gitlab.com
+  HostName              gitlab.com
+  User                  git
+  IdentityFile          ~/.ssh/gitlab_id_ed25519
+  ServerAliveInterval   20
+  ForwardAgent          no
+#+end_src
+
+On NixOS, =programs.ssh= in Home Manager generates this file
+declaratively. On macOS, the file is kept in =config/= and symlinked.
+
+* Network helpers                                            :utility:macos:
+
+#+begin_src zsh
+alias myip='curl ip.appspot.com'
+alias netCons='lsof -i'
+alias flushDNS='dscacheutil -flushcache'
+alias lsock='sudo /usr/sbin/lsof -i -P'
+alias lsockU='sudo /usr/sbin/lsof -nP | grep UDP'
+alias lsockT='sudo /usr/sbin/lsof -nP | grep TCP'
+alias openPorts='sudo lsof -i | grep LISTEN'
+#+end_src
+
+On NixOS, =ss -tlnp= replaces most of these.
+
+* macOS Finder tricks                                        :utility:macos:
+
+** Recursively delete .DS_Store files
+
+#+begin_src zsh
+alias cleanupDS="find . -type f -name '*.DS_Store' -ls -delete"
+#+end_src
+
+** Hide or show hidden files in Finder
+
+#+begin_src zsh
+alias finderShowHidden='defaults write com.apple.finder AppleShowAllFiles TRUE'
+alias finderHideHidden='defaults write com.apple.finder AppleShowAllFiles FALSE'
+#+end_src
+
+** Change directory to frontmost Finder window
+
+#+begin_src zsh
+pfd () {
+    currFolderPath=$( /usr/bin/osascript <<EOT
+        tell application "Finder"
+            try
+                set currFolder to (folder of the front window as alias)
+            on error
+                set currFolder to (path to desktop folder as alias)
+            end try
+            POSIX path of currFolder
+        end tell
+EOT
+    )
+    cd "$currFolderPath"
+}
+#+end_src
+
+* Syntactic sugar for search                                 :utility:macos:
+
+#+begin_src zsh
+alias f="find . -name "
+ff () { /usr/bin/find . -name "$@" 2>/dev/null ; }
+ffs () { /usr/bin/find . -name "$@"'*' 2>/dev/null ; }
+ffe () { /usr/bin/find . -name '*'"$@" 2>/dev/null ; }
+#+end_src
+
+On NixOS, =fd= (installed via Home Manager) largely replaces these.
+
+* Colourful man pages                                                :tty:
+
+#+begin_src zsh
+man() {
+    env \
+        LESS_TERMCAP_mb=$(printf "\e[1;31m") \
+        LESS_TERMCAP_md=$(printf "\e[1;31m") \
+        LESS_TERMCAP_me=$(printf "\e[0m") \
+        LESS_TERMCAP_se=$(printf "\e[0m") \
+        LESS_TERMCAP_so=$(printf "\e[1;44;33m") \
+        LESS_TERMCAP_ue=$(printf "\e[0m") \
+        LESS_TERMCAP_us=$(printf "\e[1;32m") \
+        man "$@"
+}
+#+end_src
+
+With =bat= as the man pager (configured in =home/base.nix=), this is
+less necessary — but it's a nice fallback.
+
+* Better cat and ls                                                  :tty:
+
+#+begin_src zsh
+alias ls='eza -al'
+alias cat='bat --paging never'
+#+end_src
+
+Both =eza= and =bat= are installed through Home Manager now. The aliases
+live in =config/after.zshrc=.
+
+* Syntax highlighting
+
+#+begin_src zsh
+source /path/to/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+#+end_src
+
+On NixOS: =programs.zsh.syntaxHighlighting.enable = true= in Home
+Manager takes care of this. On macOS with Homebrew: =source $(brew
+--prefix)/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh=.
+
+* fzf, command-line fuzzy finder
+
+https://github.com/junegunn/fzf
+
+#+begin_src zsh
+[ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
+#+end_src
+
+Key bindings:
+- =C-t= paste selected files/directories onto the command line
+- =C-r= paste selected command from history (=C-r= again for chronological
+  order)
+- =M-c= cd into selected directory
+
+On both platforms, =programs.fzf.enable = true= in Home Manager sets
+this up automatically.
+
+* Feedback sounds                                                   :macos:
+
+Put any sound you like. It helps making human-computer interactions
+more human.
+
+#+begin_src zsh
+function yay {
+  afplay $HOME/snd/yay.m4a > /dev/null 2>&1 &
+}
+
+function mwahaha {
+  afplay $HOME/snd/mwahaha.mp3 > /dev/null 2>&1 &
+}
+#+end_src
+
+* Generate a gif from a screen record
+
+#+begin_src zsh
+function gifgo {
+  ffmpeg -i "$1" -pix_fmt rgb24 -r 10 -s 900x600 -f gif - \
+    | gifsicle --delay=15 --optimize=3 > "$1.gif"
+}
+#+end_src
+
+* Generate and display a QR code from the clipboard                 :macos:
+
+#+begin_src zsh
+function qrgo {
+    tmp_file=$(mktemp).png
+    qrencode -o - "$(pbpaste)" > $tmp_file
+    open $tmp_file
+}
+#+end_src
+
+* Query structured data
+
+** Grep JSON with gron
+
+#+begin_src zsh
+# brew install gron  /  nix-shell -p gron
+gron "https://api.github.com/repos/tomnomnom/gron/commits?per_page=1" \
+  | fgrep "commit.author" \
+  | gron --ungron
+#+end_src
+
+=gron= is like =jq= but less powerful and easier to use: its purpose is
+finding the path to a value in a deeply nested JSON blob when you
+don't already know the structure.
+
+** Query JSON with jq
+
+https://stedolan.github.io/jq/manual/
+
+** Query CSV with q
+
+https://github.com/harelba/q
+
+#+begin_src zsh
+q "SELECT COUNT(*) FROM ./clicks_file.csv WHERE c3 > 32.3"
+ps -ef | q -H "SELECT UID,COUNT(*) cnt FROM - GROUP BY UID ORDER BY cnt DESC LIMIT 3"
+#+end_src
+
+* Regular expressions with AWK
+
+#+begin_src zsh
+function regex {
+  gawk 'match($0,/'$1'/, ary) {print ary['${2:-'0'}']}'
+}
+#+end_src
+
+* Reduce the size of a music library
+
+Extract audio from video containers:
+
+#+begin_src zsh
+# Single file
+if ffmpeg -i a.mkv -vn -acodec copy a.ogg; then
+    rm a.mkv
+else
+    echo "Failed for a.mkv"
+fi
+
+# All MKV files recursively
+find . -type f -name "*.mkv" -exec bash -c '
+  FILE="$1"
+  if ffmpeg -i "$FILE" -vn -acodec copy "$FILE.ogg"; then
+      rm "$FILE"
+  else
+      echo "Failed for $FILE"
+  fi
+' _ '{}' \;
+#+end_src
+
+Ogg is a container format that can embed audio in various codecs
+without re-encoding, so quality stays the same.  Typical size
+reduction from MKV: ~66%.
+
+* Emacs                                                            :editor:
+
+Emacs settings live in a [[https://github.com/piotr-yuxuan/emacs.d][separate repository]] cloned into =~/.emacs.d/=.
+
+Useful aliases:
+
+#+begin_src zsh
+alias magit-status="emacsclient --create-frame --no-wait --eval '(magit-status)'"
+#+end_src
+
+** Don't start Emacs on login (macOS)
+
+On macOS, the plist system doesn't support ordering (unlike systemd).
+If Emacs starts before =pinentry= is available, Magit GPG-signed commits
+fail. Simpler to let Emacs start on first use — oh-my-zsh's =emacs=
+plugin or a manual =emacsclient= wrapper handle this.
+
+On NixOS, Emacs runs as a systemd user service with proper dependency
+ordering.
+
+* Graveyard                                                      :obsolete:
+
+Tools no longer in active use. Kept for historical reference.
+
+** oh-my-zsh
+
+Replaced by Home Manager's =programs.zsh= with explicit plugins.
+Oh-my-zsh was useful for themes (=bullet-train=) and the =emacs= plugin,
+but it's a heavy framework for a handful of features.
+
+** zplug
+
+A Z-shell plugin manager that promised reproducible plugin versions
+(like =straight.el= for Emacs) but was never put to real use.
+
+** jenv (OpenJDK version manager)
+
+#+begin_src zsh
+export OPEN_JDK_HOME="$HOME/.jenv/bin"
+path+=($OPEN_JDK_HOME); export PATH
+eval "$(jenv init -)"
+#+end_src
+
+Superseded by =nix develop= shells with pinned JDK versions.
+
+** $HOME as git worktree for dotfiles
+
+#+begin_src zsh
+function dot_files_home_git_on {
+  echo "gitdir: $HOME/src/github.com/piotr-yuxuan/dot-files.public/.git" > $HOME/.git
+}
+
+function dot_files_home_git_off {
+  rm $HOME/.git
+}
+#+end_src
+
+See [[file:../README.org::*=$HOME= as a git repository for configuration files][Learnt mistakes]] for why this was abandoned.
