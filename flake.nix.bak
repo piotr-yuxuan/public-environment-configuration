@@ -1,0 +1,159 @@
+# /mnt/etc/nixos/flake.nix
+{
+  description = "NixOS fleet — C40C04 and future machines";
+
+  inputs = {
+    # Stable channel — system foundation
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";
+
+    # Unstable channel — bleeding-edge CLI tools
+    nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable";
+
+    # Declarative disk partitioning
+    disko = {
+      url = "github:nix-community/disko";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    # Secure Boot support
+    lanzaboote = {
+      url = "github:nix-community/lanzaboote";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    # Hardware-specific tweaks for known machines
+    # nixos-hardware has no nixpkgs input of its own — do NOT add
+    # inputs.nixpkgs.follows here, it will produce a warning.
+    nixos-hardware.url = "github:NixOS/nixos-hardware";
+
+    # Home Manager — user environment managed declaratively.
+    home-manager = {
+      url = "github:nix-community/home-manager/release-25.11";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+  };
+
+  outputs = { self, nixpkgs, nixpkgs-unstable, disko, lanzaboote, nixos-hardware, ... }:
+  let
+    system = "x86_64-linux";
+
+    unstable = import nixpkgs-unstable {
+      inherit system;
+      config.allowUnfree = true;
+    };
+
+    # ── Shared configuration ────────────────────────────────────────
+    # Everything here applies to ALL machines.
+    sharedModule = { pkgs, ... }: {
+      nix = {
+        settings = {
+          experimental-features = [ "nix-command" "flakes" ];
+          auto-optimise-store = true;
+        };
+        gc = {
+          automatic = true;
+          dates = "weekly";
+          options = "--delete-older-than 30d";
+        };
+      };
+
+      time.timeZone = "Europe/Paris";
+      i18n.defaultLocale = "en_US.UTF-8";
+
+      # System packages from stable
+      environment.systemPackages = with pkgs; [
+        vim
+        git
+        sbctl        # for debugging Secure Boot after install
+        btrfs-progs
+      ];
+
+      networking.networkmanager.enable = true;
+
+      # ── Firewall ─────────────────────────────────────────────────────
+      # Deny all inbound by default. Open ports per-host as needed.
+      networking.firewall = {
+        enable = true;
+        allowedTCPPorts = [ ];
+        allowedUDPPorts = [ ];
+      };
+
+      # SSH is explicitly disabled fleet-wide. Enable per-host only if needed,
+      # e.g. services.openssh.enable = lib.mkForce true; in hosts/<name>.nix.
+      services.openssh.enable = false;
+
+      # ── Nix daemon access ─────────────────────────────────────────
+      # Only wheel users may talk to the Nix daemon (build, fetch, etc.).
+      nix.settings.allowed-users = [ "@wheel" ];
+      nix.settings.trusted-users = [ "root" "@wheel" ];
+
+      # ── User accounts ─────────────────────────────────────────────
+      # Immutable users: passwd/useradd/userdel are no-ops.
+      # Passwords can ONLY be changed by updating the hashedPasswordFile
+      # and running nixos-rebuild. This prevents silent drift.
+      users.mutableUsers = false;
+
+      users.users.caocoa = {
+        isNormalUser = true;
+        home = "/home/caocoa";
+        extraGroups = [ "wheel" "networkmanager" "video" "audio" ];
+        hashedPasswordFile = "/etc/secrets/caocoa-password";
+      };
+    };
+
+    # ── Home Manager module — conditionally import per-user home.nix ──
+    # If ~/.emacs.d/nix/home.nix exists it is imported; otherwise a
+    # warning is printed at evaluation time and home-manager gets a
+    # minimal stub so the build never hard-fails.
+    homeManagerModule = { lib, ... }:
+      let
+        emacsHome = /home/caocoa/.emacs.d/nix/home.nix;
+        moduleExists = builtins.pathExists emacsHome;
+      in {
+        home-manager = {
+          useGlobalPkgs    = true;   # reuse the system nixpkgs instance
+          useUserPackages  = true;   # install into /etc/profiles/per-user
+          backupFileExtension = "hm-backup";
+          extraSpecialArgs = { inherit unstable; };
+
+          users.caocoa =
+            if moduleExists
+            then import emacsHome
+            else lib.warn
+              "[home-manager] ~/.emacs.d/nix/home.nix not found — skipping user config"
+              ({ ... }: {
+                home.username    = "caocoa";
+                home.homeDirectory = "/home/caocoa";
+                home.stateVersion = "25.11";
+              });
+        };
+      };
+
+  in {
+    nixosConfigurations = {
+
+      C40C04 = nixpkgs.lib.nixosSystem {
+        inherit system;
+        modules = [
+          sharedModule
+          disko.nixosModules.disko
+          ./disko-config.nix
+          lanzaboote.nixosModules.lanzaboote
+          ./hardware-configuration.nix
+
+          # Framework 16 AMD 7040 hardware profile
+          nixos-hardware.nixosModules.framework-16-7040-amd
+
+          # Home Manager — wires ~/.emacs.d/nix/home.nix if it exists
+          home-manager.nixosModules.home-manager
+          homeManagerModule
+
+          ./hosts/C40C04.nix
+        ];
+      };
+
+      # Future: work laptop
+      # work-laptop = nixpkgs.lib.nixosSystem { ... };
+    };
+  };
+}
