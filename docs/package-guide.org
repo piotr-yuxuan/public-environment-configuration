@@ -1,0 +1,890 @@
+#+TITLE: Package Guide — Quick Tour
+#+AUTHOR: caocoa
+#+STARTUP: overview
+
+This guide covers every package in the fleet configuration.  For each
+tool you get: what it does, and a couple of examples so you can start
+using it right away.
+
+* Table of contents :TOC_2_org:
+- [[Build toolchain][Build toolchain]]
+  - [[gcc][gcc]]
+  - [[cmake][cmake]]
+  - [[pkg-config][pkg-config]]
+  - [[enchant][enchant]]
+  - [[meson / ninja][meson / ninja]]
+- [[Languages & runtimes][Languages & runtimes]]
+  - [[python3][python3]]
+  - [[nodejs][nodejs]]
+  - [[rustup][rustup]]
+- [[Clojure ecosystem][Clojure ecosystem]]
+  - [[clojure (C40C04 only)][clojure (C40C04 only)]]
+  - [[babashka][babashka]]
+  - [[clj-kondo][clj-kondo]]
+  - [[neil][neil]]
+  - [[Practicalli deps.edn][Practicalli deps.edn]]
+- [[Language servers (Eglot)][Language servers (Eglot)]]
+- [[Formatters][Formatters]]
+  - [[black / isort / ruff][black / isort / ruff]]
+  - [[yamlfmt / yamllint][yamlfmt / yamllint]]
+  - [[shfmt / shellcheck][shfmt / shellcheck]]
+  - [[prettier][prettier]]
+- [[Search & navigation][Search & navigation]]
+  - [[ripgrep][ripgrep]]
+  - [[silver-searcher (ag)][silver-searcher (ag)]]
+  - [[fzf][fzf]]
+  - [[zoxide][zoxide]]
+  - [[fd (C40C04 only)][fd (C40C04 only)]]
+- [[CLI utilities][CLI utilities]]
+  - [[jq][jq]]
+  - [[yq-go][yq-go]]
+  - [[fx][fx]]
+  - [[curl][curl]]
+  - [[tokei][tokei]]
+  - [[tree][tree]]
+  - [[enca][enca]]
+  - [[qrencode][qrencode]]
+  - [[duckdb][duckdb]]
+  - [[poppler-utils][poppler-utils]]
+  - [[asciinema][asciinema]]
+  - [[bmon][bmon]]
+  - [[yt-dlp][yt-dlp]]
+  - [[ffmpeg][ffmpeg]]
+- [[IaC / Cloud][IaC / Cloud]]
+  - [[awscli2][awscli2]]
+  - [[aws-vault][aws-vault]]
+  - [[granted][granted]]
+  - [[ssm-session-manager-plugin][ssm-session-manager-plugin]]
+  - [[sops][sops]]
+  - [[age][age]]
+  - [[tenv][tenv]]
+  - [[terraform-ls / terraform-lsp][terraform-ls / terraform-lsp]]
+  - [[terraform-landscape][terraform-landscape]]
+  - [[podman][podman]]
+- [[CloudFormation][CloudFormation]]
+  - [[python3Packages.cfn-lint][python3Packages.cfn-lint]]
+  - [[rain][rain]]
+- [[Load testing][Load testing]]
+  - [[k6][k6]]
+  - [[vegeta][vegeta]]
+  - [[hey][hey]]
+- [[LaTeX][LaTeX]]
+  - [[texliveFull][texliveFull]]
+  - [[tectonic][tectonic]]
+  - [[texlab (work only)][texlab (work only)]]
+  - [[texstudio (C40C04 only)][texstudio (C40C04 only)]]
+- [[Music & audio][Music & audio]]
+  - [[picard][picard]]
+  - [[lilypond (C40C04 only)][lilypond (C40C04 only)]]
+  - [[frescobaldi (C40C04 only)][frescobaldi (C40C04 only)]]
+  - [[timidity (C40C04 only)][timidity (C40C04 only)]]
+  - [[audacity (C40C04 only)][audacity (C40C04 only)]]
+  - [[vlc (C40C04 only)][vlc (C40C04 only)]]
+- [[Profiling & flamegraphs][Profiling & flamegraphs]]
+  - [[visualvm][visualvm]]
+  - [[async-profiler][async-profiler]]
+  - [[flamegraph][flamegraph]]
+- [[AI / ML][AI / ML]]
+  - [[ollama][ollama]]
+  - [[openai-whisper][openai-whisper]]
+  - [[open-webui][open-webui]]
+- [[Email][Email]]
+  - [[mu / mu4e][mu / mu4e]]
+  - [[isync (mbsync)][isync (mbsync)]]
+- [[Spell & grammar][Spell & grammar]]
+  - [[hunspell][hunspell]]
+  - [[aspell][aspell]]
+  - [[languagetool][languagetool]]
+  - [[grammalecte (python3Packages)][grammalecte (python3Packages)]]
+- [[Encryption & security][Encryption & security]]
+  - [[gpg][gpg]]
+  - [[age][age]]
+  - [[sops][sops]]
+- [[Shell & prompt][Shell & prompt]]
+  - [[zsh][zsh]]
+  - [[starship][starship]]
+  - [[direnv][direnv]]
+  - [[bat][bat]]
+  - [[eza][eza]]
+  - [[btop / htop][btop / htop]]
+  - [[tealdeer][tealdeer]]
+- [[C40C04-only packages][C40C04-only packages]]
+  - [[emacs][emacs]]
+  - [[firefox-devedition][firefox-devedition]]
+  - [[vscode][vscode]]
+  - [[maestral / maestral-gui][maestral / maestral-gui]]
+  - [[signal-desktop][signal-desktop]]
+  - [[xiphos / sword][xiphos / sword]]
+  - [[mermaid-cli][mermaid-cli]]
+  - [[difftastic][difftastic]]
+  - [[dust / duf][dust / duf]]
+  - [[compsize][compsize]]
+- [[Work-only packages][Work-only packages]]
+  - [[go][go]]
+  - [[glab][glab]]
+  - [[gitlab-runner][gitlab-runner]]
+  - [[graphviz][graphviz]]
+  - [[pandoc][pandoc]]
+
+* Build toolchain
+
+** gcc
+C/C++ compiler.  Used by Emacs to compile native modules (jinx, vterm).
+#+begin_src sh
+gcc -o hello hello.c
+gcc -shared -fPIC -o module.so module.c   # build a shared library
+#+end_src
+
+** cmake
+Cross-platform build system generator.
+#+begin_src sh
+cmake -B build -S .       # generate build files from CMakeLists.txt
+cmake --build build       # compile the project
+#+end_src
+
+** pkg-config
+Queries installed library flags for compilation.
+#+begin_src sh
+pkg-config --cflags --libs enchant-2   # print -I and -l flags for enchant
+#+end_src
+
+** enchant
+Spell-checking meta-library.  Jinx (Emacs) compiles against it.  You
+rarely call it directly — it is a compile-time dependency.
+
+** meson / ninja
+Modern build system pair.  Meson generates ninja files, ninja executes them.
+#+begin_src sh
+meson setup builddir
+ninja -C builddir
+#+end_src
+
+* Languages & runtimes
+
+** python3
+#+begin_src sh
+python3 -c "print('hello')"
+python3 -m venv .venv && source .venv/bin/activate   # virtual environment
+#+end_src
+
+** nodejs
+JavaScript runtime.  Also provides =npm=.
+#+begin_src sh
+node -e "console.log(42)"
+npm init -y && npm install express
+#+end_src
+
+** rustup
+Rust toolchain manager.  First run installs a default toolchain.
+#+begin_src sh
+rustup default stable          # install the stable toolchain
+cargo new hello && cd hello && cargo run
+#+end_src
+
+* Clojure ecosystem
+
+** clojure (C40C04 only)
+Clojure CLI (=clj= / =clojure=) with tools.deps.
+#+begin_src sh
+clj                            # start a REPL
+clj -X:deps tree               # show dependency tree
+clojure -M:test                # run tests via alias in deps.edn
+#+end_src
+
+** babashka
+Fast Clojure scripting — no JVM startup.
+#+begin_src sh
+bb -e '(+ 1 2)'                                # quick expression
+bb -e '(-> (slurp "data.json") (json/parse-string))'
+bb script.clj                                  # run a file
+#+end_src
+
+** clj-kondo
+Clojure linter / static analysis.
+#+begin_src sh
+clj-kondo --lint src/            # lint a directory
+clj-kondo --lint - <<< "(defn f [x] x x)"   # lint from stdin
+#+end_src
+
+** neil
+Manage =deps.edn= aliases and dependencies.
+#+begin_src sh
+neil dep add cheshire/cheshire   # add a dependency to deps.edn
+neil dep upgrade                 # bump all deps to latest
+neil new scratch my-project      # scaffold a new project
+#+end_src
+
+** Practicalli deps.edn
+Not a package — a flake input.  The community =deps.edn= from
+=practicalli/clojure-deps-edn= is symlinked to
+=~/.config/clojure/deps.edn=.  It gives you dozens of ready-made
+aliases:
+#+begin_src sh
+clj -M:repl/rebel              # rich REPL with Rebel Readline
+clj -M:test/runner              # run tests
+clj -X:project/create           # create a new project
+#+end_src
+Run =clj -A:deps -Stree= to see everything available.
+
+* Language servers (Eglot)
+
+All of these are used through Emacs Eglot (or VS Code).  You generally
+don't invoke them manually.
+
+| Server                       | Language         | Trigger              |
+|------------------------------+------------------+----------------------|
+| =clojure-lsp=               | Clojure          | =.clj=, =.edn=      |
+| =pyright=                    | Python           | =.py=                |
+| =typescript-language-server= | TypeScript / JS  | =.ts=, =.tsx=, =.js= |
+| =ltex-ls=                    | LaTeX / Markdown | =.tex=, =.md=        |
+| =texlab=                     | LaTeX            | =.tex=, =.bib=       |
+| =jdt-language-server=        | Java             | =.java=              |
+| =bash-language-server=       | Shell            | =.sh=, =.bash=       |
+| =dockerfile-language-server= | Dockerfile       | =Dockerfile=         |
+| =sqls=                       | SQL              | =.sql=               |
+| =yaml-language-server=       | YAML             | =.yaml=, =.yml=      |
+| =nixd= (C40C04 only)        | Nix              | =.nix=               |
+
+* Formatters
+
+** black / isort / ruff
+Python formatters and linter.
+#+begin_src sh
+black myfile.py                # reformat Python
+isort myfile.py                # sort imports
+ruff check src/                # lint Python (very fast)
+ruff format src/               # format Python (alternative to black)
+#+end_src
+
+** yamlfmt / yamllint
+#+begin_src sh
+yamlfmt file.yaml              # auto-format YAML
+yamllint -d relaxed file.yaml  # lint YAML
+#+end_src
+
+** shfmt / shellcheck
+#+begin_src sh
+shfmt -w script.sh             # format shell script in place
+shellcheck script.sh           # lint shell script (catches quoting bugs, etc.)
+#+end_src
+
+** prettier
+Formats HTML, CSS, JSON, Markdown, YAML, and more.
+#+begin_src sh
+prettier --write "**/*.json"
+prettier --check .
+#+end_src
+
+* Search & navigation
+
+** ripgrep
+Recursive regex search — faster than grep.
+#+begin_src sh
+rg "TODO" src/                 # search for TODO in src/
+rg -t py "import os"           # search only Python files
+rg -l "fixme"                  # list filenames only
+#+end_src
+
+** silver-searcher (ag)
+Similar to ripgrep, older but still fast.
+#+begin_src sh
+ag "pattern" .
+ag --clojure "defn"            # search only Clojure files
+#+end_src
+
+** fzf
+Fuzzy finder — pipes anything into an interactive selector.
+#+begin_src sh
+vim $(fzf)                     # pick a file, open in vim
+history | fzf                  # search shell history
+rg --files | fzf --preview 'bat {}'
+#+end_src
+
+** zoxide
+Smarter =cd= — learns your most-visited directories.
+#+begin_src sh
+z nixos                        # jump to most-used dir matching "nixos"
+zi                             # interactive selection
+#+end_src
+
+** fd (C40C04 only)
+User-friendly =find= replacement.
+#+begin_src sh
+fd "\.nix$"                    # find all .nix files
+fd -e py -x black {}           # find Python files and format them
+#+end_src
+
+* CLI utilities
+
+** fortune
+Print a random quotation. Runs once at login as part of the shell greeting.
+#+begin_src sh
+fortune                         # random quote
+fortune -s                      # short quotes only
+#+end_src
+
+** macchina
+System information fetcher (modern replacement for archey/neofetch).
+Runs once at login as part of the shell greeting.
+#+begin_src sh
+macchina                        # show system info
+macchina -t Hydrogen            # use a specific theme
+#+end_src
+
+** jq
+JSON processor.
+#+begin_src sh
+curl -s https://api.github.com/users/octocat | jq '.name'
+echo '[1,2,3]' | jq 'map(. * 2)'
+cat data.json | jq -r '.[] | .id'
+#+end_src
+
+** yq-go
+YAML processor — same idea as jq.
+#+begin_src sh
+yq '.services.web.image' docker-compose.yml
+yq -i '.version = "2"' config.yaml          # edit in place
+#+end_src
+
+** fx
+Interactive JSON viewer (TUI).
+#+begin_src sh
+curl -s https://api.github.com/repos/NixOS/nixpkgs | fx
+cat large.json | fx '.items[0]'
+#+end_src
+
+** curl
+HTTP client.
+#+begin_src sh
+curl -sL https://example.com
+curl -X POST -H "Content-Type: application/json" -d '{"key":"val"}' https://api.example.com/data
+#+end_src
+
+** tokei
+Count lines of code by language.
+#+begin_src sh
+tokei .                        # summary of the whole repo
+tokei src/ --sort code         # sorted by lines of code
+#+end_src
+
+** tree
+Directory listing as a tree.
+#+begin_src sh
+tree -L 2                      # depth-limited to 2
+tree -I node_modules           # exclude a directory
+#+end_src
+
+** enca
+Detect and convert file encodings.
+#+begin_src sh
+enca -L fr fichier.txt         # detect encoding (French heuristics)
+enca -x UTF-8 fichier.txt     # convert to UTF-8 in place
+#+end_src
+
+** qrencode
+Generate QR codes.
+#+begin_src sh
+qrencode -o qr.png "https://example.com"
+echo "wifi secret" | qrencode -t UTF8        # print QR in terminal
+#+end_src
+
+** duckdb
+In-process analytical SQL engine — like SQLite for analytics.
+#+begin_src sh
+duckdb                                       # interactive REPL
+duckdb -c "SELECT count(*) FROM 'data.csv'"
+duckdb -c "SELECT * FROM read_parquet('file.parquet') LIMIT 5"
+#+end_src
+
+** poppler-utils
+PDF text extraction tools.
+#+begin_src sh
+pdftotext document.pdf -        # extract text to stdout
+pdfinfo document.pdf            # show metadata (pages, size, etc.)
+#+end_src
+
+** asciinema
+Record and share terminal sessions.
+#+begin_src sh
+asciinema rec demo.cast         # start recording
+asciinema play demo.cast        # replay locally
+asciinema upload demo.cast      # share on asciinema.org
+#+end_src
+
+** bmon
+Real-time network bandwidth monitor (TUI).
+#+begin_src sh
+bmon                            # launch the monitor
+bmon -p wlp1s0                  # monitor a specific interface
+#+end_src
+
+** yt-dlp
+Download videos/audio from YouTube and hundreds of other sites.
+#+begin_src sh
+yt-dlp "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+yt-dlp -x --audio-format mp3 URL              # extract audio as MP3
+yt-dlp -f "bestvideo+bestaudio" URL            # best quality
+yt-dlp --list-formats URL                      # show available formats
+#+end_src
+
+** ffmpeg
+Swiss-army knife for audio/video processing.
+#+begin_src sh
+ffmpeg -i input.mp4 output.mkv                 # convert format
+ffmpeg -i video.mp4 -ss 00:01:00 -t 30 clip.mp4   # extract 30s clip
+ffmpeg -i input.wav -codec:a libopus output.opus   # transcode audio
+ffmpeg -i video.mp4 -vn -acodec copy audio.m4a     # strip video, keep audio
+#+end_src
+
+* IaC / Cloud
+
+** awscli2
+Official AWS CLI.
+#+begin_src sh
+aws sts get-caller-identity                    # who am I?
+aws s3 ls s3://my-bucket/                      # list bucket contents
+aws cloudformation describe-stacks --stack-name my-stack
+#+end_src
+
+** aws-vault
+Securely store and access AWS credentials (uses OS keychain).
+#+begin_src sh
+aws-vault add work                             # store credentials for "work" profile
+aws-vault exec work -- aws s3 ls               # run a command with temporary creds
+aws-vault login work                           # open AWS console in browser
+#+end_src
+
+** granted
+Fast AWS role switching.
+#+begin_src sh
+assume work-admin                              # switch to a role (interactive)
+assume --export work-admin                     # export creds as env vars
+#+end_src
+
+** ssm-session-manager-plugin
+Start SSH-like sessions to EC2 instances via AWS SSM (no open ports).
+#+begin_src sh
+aws ssm start-session --target i-0123456789abcdef0
+#+end_src
+
+** sops
+Encrypted secrets management (works with age, gpg, AWS KMS).
+#+begin_src sh
+sops secrets.yaml                              # edit encrypted file (decrypts in $EDITOR)
+sops -d secrets.yaml                           # decrypt to stdout
+sops -e -i secrets.yaml                        # encrypt a plaintext file in-place
+sops --age $(cat ~/.config/sops/age/keys.txt | grep public) -e plain.yaml > enc.yaml
+#+end_src
+
+** age
+Modern file encryption — simpler than GPG.
+#+begin_src sh
+age-keygen -o key.txt                          # generate a keypair
+age -r age1... -o secret.enc secret.txt        # encrypt to a recipient
+age -d -i key.txt secret.enc                   # decrypt with your key
+#+end_src
+
+** tenv
+Terraform version manager (like tfenv but multi-tool).
+#+begin_src sh
+tenv tf install 1.9.0                          # install a Terraform version
+tenv tf use 1.9.0                              # switch to it
+tenv tofu install latest                       # also manages OpenTofu
+#+end_src
+
+** terraform-ls / terraform-lsp
+Language servers for Terraform (=.tf= files).  Used by Eglot / VS Code.
+
+** terraform-landscape
+Reformats =terraform plan= output for readability.
+#+begin_src sh
+terraform plan | landscape
+#+end_src
+
+** podman
+Rootless container engine (Docker-compatible).
+#+begin_src sh
+podman run --rm -it alpine sh                  # run a throwaway container
+podman build -t myapp .                        # build from Dockerfile
+podman ps                                      # list running containers
+#+end_src
+
+* CloudFormation
+
+** python3Packages.cfn-lint
+CloudFormation template linter.
+#+begin_src sh
+cfn-lint template.yaml                         # lint a template
+cfn-lint "templates/**/*.yaml"                 # lint all templates in a directory
+cfn-lint -f json template.yaml                 # JSON output for CI
+#+end_src
+
+** rain
+CloudFormation deploy / diff CLI — much better UX than =aws cloudformation=.
+#+begin_src sh
+rain deploy template.yaml my-stack             # deploy (waits, streams events)
+rain diff template.yaml my-stack               # show what would change
+rain cat my-stack                              # print current template from AWS
+rain logs my-stack                             # show recent CloudWatch logs
+rain fmt template.yaml                         # format a CFN template
+#+end_src
+
+* Load testing
+
+** k6
+Modern load testing — tests are written in JavaScript.
+#+begin_src sh
+# Create a test script:
+cat > test.js <<'EOF'
+import http from 'k6/http';
+export default function () {
+  http.get('https://test-api.example.com/');
+}
+EOF
+k6 run test.js                                 # default: 1 VU, 1 iteration
+k6 run --vus 50 --duration 30s test.js         # 50 virtual users for 30s
+#+end_src
+
+** vegeta
+HTTP load testing — pipe-based, composable.
+#+begin_src sh
+echo "GET https://example.com/" | vegeta attack -duration=10s | vegeta report
+echo "GET https://example.com/" | vegeta attack -rate=100/s | vegeta plot > plot.html
+#+end_src
+
+** hey
+Simple HTTP load generator — one command, instant results.
+#+begin_src sh
+hey -n 1000 -c 50 https://example.com/        # 1000 requests, 50 concurrent
+hey -m POST -d '{"key":"val"}' -T "application/json" https://api.example.com/
+#+end_src
+
+* LaTeX
+
+** texliveFull
+Full TeX Live distribution.  Includes XeLaTeX, LuaLaTeX, pdfLaTeX,
+latexmk, and all CTAN packages.
+#+begin_src sh
+xelatex document.tex           # compile with XeLaTeX (for system fonts)
+lualatex document.tex          # compile with LuaLaTeX (for advanced font features)
+latexmk -xelatex document.tex # auto-build with latexmk (watches dependencies)
+latexmk -c                     # clean auxiliary files
+#+end_src
+
+** tectonic
+Self-contained TeX engine — downloads packages on demand.
+#+begin_src sh
+tectonic document.tex          # compile (fetches missing packages automatically)
+tectonic -X build              # build a Tectonic.toml project
+#+end_src
+
+** texlab (work only)
+LaTeX language server.  Used by Eglot / VS Code for completion,
+diagnostics, and forward/inverse search.
+
+** texstudio (C40C04 only)
+LaTeX IDE with integrated PDF viewer, build system, and symbol tables.
+
+* Music & audio
+
+** picard
+MusicBrainz Picard — automatic music tagger.
+#+begin_src sh
+picard                         # launch GUI
+picard /path/to/album/         # open a directory directly
+#+end_src
+Drag files into the left pane, click "Scan" or "Lookup", then "Save".
+
+** lilypond (C40C04 only)
+Music engraving — write scores in text, produce publication-quality PDFs.
+#+begin_src sh
+lilypond score.ly              # compile to PDF + MIDI
+lilypond -o output score.ly    # specify output prefix
+#+end_src
+
+** frescobaldi (C40C04 only)
+GUI editor for LilyPond — live score preview, MIDI playback, syntax
+highlighting.
+
+** timidity (C40C04 only)
+MIDI playback — used by Frescobaldi for score preview audio.
+#+begin_src sh
+timidity output.midi           # play a MIDI file
+#+end_src
+
+** audacity (C40C04 only)
+Audio editor — record, cut, filter, mix.
+
+** vlc (C40C04 only)
+Media player — plays virtually any audio/video format.
+#+begin_src sh
+vlc file.mp4
+cvlc --play-and-exit file.mp3  # headless playback
+#+end_src
+
+* Profiling & flamegraphs
+
+** visualvm
+JVM monitoring and profiling GUI.  Attach to running JVM processes,
+inspect heap, threads, CPU sampling.
+#+begin_src sh
+visualvm                       # launch GUI — auto-detects local JVMs
+visualvm --openjmx jmx://host:port   # connect to a remote JVM
+#+end_src
+
+** async-profiler
+Low-overhead JVM sampling profiler.  Produces flamegraph-ready output.
+#+begin_src sh
+# Attach to a running JVM PID:
+asprof -d 30 -f profile.html <PID>   # profile for 30s, produce HTML flamegraph
+asprof -e alloc -f alloc.html <PID>  # profile memory allocations
+#+end_src
+
+** flamegraph
+Brendan Gregg's FlameGraph scripts — turn perf/DTrace stacks into SVGs.
+#+begin_src sh
+# Typical Linux perf workflow:
+perf record -g -p <PID> -- sleep 10
+perf script | stackcollapse-perf.pl | flamegraph.pl > flame.svg
+#+end_src
+
+* AI / ML
+
+** ollama
+Run LLMs locally.
+#+begin_src sh
+ollama pull llama3             # download a model
+ollama run llama3 "Explain monads in one paragraph"
+ollama list                    # show installed models
+ollama serve                   # start the API server (port 11434)
+#+end_src
+
+** openai-whisper
+Speech-to-text transcription.
+#+begin_src sh
+whisper audio.mp3 --model medium --language fr   # transcribe French audio
+whisper recording.wav --model small --output_format srt   # produce subtitles
+#+end_src
+
+** open-webui
+Local web UI for Ollama (and OpenAI-compatible APIs).
+#+begin_src sh
+open-webui serve               # start on http://localhost:8080
+# Then open the URL in your browser — chat interface with model selection.
+#+end_src
+
+* Email
+
+** mu / mu4e
+=mu= indexes your Maildir; =mu4e= is the Emacs frontend.
+#+begin_src sh
+mu init -m ~/Maildir --my-address me@example.com
+mu index                       # (re)index mail
+mu find "from:alice subject:meeting"   # search from the CLI
+#+end_src
+In Emacs: =M-x mu4e= to launch the email client.
+
+** isync (mbsync)
+IMAP mailbox synchronisation.
+#+begin_src sh
+mbsync -a                      # sync all configured accounts
+mbsync work                    # sync only the "work" channel
+#+end_src
+Configuration lives in =~/.mbsyncrc=.
+
+* Spell & grammar
+
+** hunspell
+Spell checker with dictionary support.
+#+begin_src sh
+echo "speling errror" | hunspell -d en_US      # interactive check
+hunspell -l -d fr_FR document.txt              # list misspelled words
+#+end_src
+
+** aspell
+Alternative spell checker (used by some Emacs packages).
+#+begin_src sh
+aspell check document.txt
+echo "testt" | aspell -a -d en
+#+end_src
+
+** languagetool
+Grammar and style checker (EN, FR, PL, DE, ES, …).
+#+begin_src sh
+languagetool document.txt                      # check a file
+echo "Their going to the store" | languagetool -l en-US -   # check stdin
+languagetool --list                            # list available languages
+#+end_src
+Also used via =ltex-ls= in Emacs (Eglot) for in-editor grammar checking.
+
+** grammalecte (python3Packages)
+French grammar checker.
+#+begin_src sh
+grammalecte-cli -f document.txt
+echo "Il mangent des pomme." | grammalecte-cli
+#+end_src
+
+* Encryption & security
+
+** gpg
+GNU Privacy Guard — encrypt, sign, verify.
+#+begin_src sh
+gpg --gen-key                                  # create a key pair
+gpg -e -r recipient@email.com file.txt         # encrypt
+gpg -d file.txt.gpg                            # decrypt
+gpg --verify signature.sig file.txt            # verify a signature
+#+end_src
+
+** age
+Modern file encryption (simpler than GPG, no key servers).
+#+begin_src sh
+age-keygen -o key.txt                          # generate keypair
+age -r age1publickey... secret.txt > secret.enc
+age -d -i key.txt secret.enc > secret.txt
+#+end_src
+
+** sops
+See [[*sops][IaC / Cloud § sops]] above.
+
+* Shell & prompt
+
+** zsh
+Your login shell.  Configured via Home Manager with autosuggestion,
+syntax highlighting, and completions.
+
+** starship
+Cross-shell prompt.  Configured with the gruvbox-rainbow preset.
+Shows git status, language versions, AWS profile, etc.
+
+** direnv
+Per-directory environment variables.  With =nix-direnv=, entering a
+directory with a =flake.nix= auto-loads its dev shell.
+#+begin_src sh
+echo "use flake" > .envrc      # in a project with flake.nix
+direnv allow                   # trust the .envrc
+cd .                           # environment is now loaded
+#+end_src
+
+** bat
+=cat= with syntax highlighting and line numbers.
+#+begin_src sh
+bat src/main.rs
+bat --diff file.txt            # show git diff highlighting
+#+end_src
+
+** eza
+Modern =ls= with git integration and icons.
+#+begin_src sh
+eza -la                        # long listing with hidden files
+eza --tree --level 2           # tree view
+#+end_src
+
+** btop / htop
+System monitors.
+#+begin_src sh
+btop                           # rich TUI (CPU, RAM, disks, network)
+htop                           # classic process viewer (tree mode enabled)
+#+end_src
+
+** tealdeer
+Fast =tldr= client — simplified, example-driven man pages.
+#+begin_src sh
+tldr tar                       # quick tar examples
+tldr ffmpeg                    # quick ffmpeg examples
+tldr --update                  # refresh the cache
+#+end_src
+
+* C40C04-only packages
+
+** emacs
+Text editor and Lisp environment.  The flagship editor in this config.
+
+** firefox-devedition
+Firefox with developer tools enabled by default.
+
+** vscode
+Visual Studio Code.
+
+** maestral / maestral-gui
+Open-source Dropbox client.  =maestral= is the daemon, =maestral-gui=
+is the system tray icon.
+#+begin_src sh
+maestral status                # check sync status
+maestral ls /                  # list Dropbox root
+#+end_src
+
+** signal-desktop
+Encrypted messaging.
+
+** xiphos / sword
+Bible study application (=xiphos=) and the underlying text engine
+(=sword=).
+#+begin_src sh
+diatheke -b KJV -k "John 3:16"              # query a Bible module from CLI
+installmgr -sc                               # list remote SWORD repositories
+#+end_src
+
+** mermaid-cli
+Render Mermaid diagrams to PNG/SVG (used by =ob-mermaid= in Emacs).
+#+begin_src sh
+mmdc -i diagram.mmd -o diagram.png
+#+end_src
+
+** difftastic
+Structural diff — understands syntax, not just lines.
+#+begin_src sh
+difft old.py new.py
+GIT_EXTERNAL_DIFF=difft git diff HEAD~1      # use with git
+#+end_src
+
+** dust / duf
+Modern disk usage tools.
+#+begin_src sh
+dust                           # visual directory size (like du but better)
+duf                            # disk free overview (like df but prettier)
+#+end_src
+
+** compsize
+Show compression ratio of files on btrfs.  Requires root.
+#+begin_src sh
+sudo compsize /                # whole filesystem compression stats
+sudo compsize /nix/store       # compression ratio for /nix/store
+#+end_src
+
+* Work-only packages
+
+** go
+Go programming language.
+#+begin_src sh
+go run main.go
+go build -o app .
+#+end_src
+
+** glab
+GitLab CLI.
+#+begin_src sh
+glab mr create --title "Feature X" --target main
+glab mr list
+glab ci status
+#+end_src
+
+** gitlab-runner
+Run CI/CD jobs locally.
+#+begin_src sh
+gitlab-runner exec docker test_job
+#+end_src
+
+** graphviz
+Graph visualisation (DOT language).
+#+begin_src sh
+dot -Tpng graph.dot -o graph.png
+echo "digraph { A -> B -> C }" | dot -Tsvg > graph.svg
+#+end_src
+
+** pandoc
+Universal document converter.
+#+begin_src sh
+pandoc README.md -o README.pdf
+pandoc -f org -t docx notes.org -o notes.docx
+pandoc --list-input-formats
+#+end_src

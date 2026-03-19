@@ -1,0 +1,143 @@
+#+title: Getting started: Framework 16 (NixOS from Ubuntu live USB)
+#+author: piotr-yuxuan
+
+Full walkthrough for installing NixOS on a Framework 16 AMD 7040 laptop
+from an Ubuntu live USB session.
+
+* Prerequisites
+
+- A USB drive flashed with the latest *Ubuntu Desktop ISO*.
+- A network connection (Ethernet dongle or Wi-Fi).
+- This repository accessible from GitHub (or copied onto the USB).
+
+* 1. Boot the live USB
+
+Power on the Framework, press *F12* during POST to select the USB drive.
+Choose *"Try Ubuntu"*.
+
+* 2. Connect to the internet
+
+#+begin_src zsh
+ping -c3 nixos.org
+#+end_src
+
+* 3. Install Nix
+
+#+begin_src zsh
+sh <(curl -L https://nixos.org/nix/install) --daemon
+#+end_src
+
+Open a *new terminal* (or =source /etc/profile=) so =nix= is on =PATH=.
+
+* 4. Partition the disk with Disko
+
+#+begin_src zsh
+nix-shell -p git --run "git clone https://github.com/<your-user>/nixos.git /tmp/nixos"
+cd /tmp/nixos
+
+# ⚠ This ERASES /dev/nvme0n1
+sudo nix --experimental-features "nix-command flakes" run \
+  github:nix-community/disko -- --mode disko ./disko-config.nix
+#+end_src
+
+You will be prompted for a *LUKS passphrase*, choose a strong one.
+
+** What does Disko do exactly?
+
+Disko reads =disko-config.nix= and creates:
+
+1. A 1 GB *ESP* partition (FAT32, mounted at =/boot=).
+2. A *LUKS-encrypted* partition spanning the rest of the NVMe.
+3. Inside LUKS, an *LVM volume group* (=vg-C40C04=) containing:
+   - =lv-swap= (72 GB): swap with resume support for hibernate.
+   - =lv-btrfs= (remaining space): Btrfs with subvolumes for =/=,
+     =/home/caocoa=, =.cache=, and =/.snapshots=.
+
+All subvolumes use =compress=zstd= and =noatime=.
+
+If =disko= fails to find the disk, verify the device name with =lsblk=
+and edit =disko-config.nix= if it differs from =/dev/nvme0n1=.
+
+* 5. Generate hardware configuration
+
+#+begin_src zsh
+sudo nixos-generate-config --no-filesystems --root /mnt
+cp /mnt/etc/nixos/hardware-configuration.nix /tmp/nixos/hardware-configuration.nix
+#+end_src
+
+** Why =--no-filesystems=?
+
+Disko already manages all mount points declaratively in
+=disko-config.nix=. Generating filesystem entries in
+=hardware-configuration.nix= would create duplicates and conflicts.
+
+* 6. Create the password file
+
+#+begin_src zsh
+sudo mkdir -p /mnt/etc/secrets
+echo "your-password" | mkpasswd -m sha-512 -s \
+  | sudo tee /mnt/etc/secrets/caocoa-password > /dev/null
+sudo chmod 600 /mnt/etc/secrets/caocoa-password
+#+end_src
+
+** Why a hashed password file?
+
+The flake sets =users.mutableUsers = false=, which means =passwd= and
+=useradd= are no-ops at runtime. The only way to set or change a password
+is through =hashedPasswordFile= + =nixos-rebuild=. This prevents silent
+drift and ensures the password state is always reproducible.
+
+* 7. Install NixOS
+
+#+begin_src zsh
+cd /tmp/nixos
+sudo nixos-install --flake .#C40C04 --root /mnt
+#+end_src
+
+You will be asked to set the *root password*. The first build downloads
+and compiles everything; it takes a while.
+
+* 8. Reboot into NixOS
+
+#+begin_src zsh
+sudo reboot
+#+end_src
+
+Remove the USB drive. The system boots into *GDM*. Log in as =caocoa=.
+
+* 9. Clone repositories
+
+#+begin_src zsh
+git clone https://github.com/<your-user>/nixos.git ~/nixos
+git clone https://github.com/<your-user>/emacs.d.git ~/.emacs.d
+#+end_src
+
+* 10. Enrol Secure Boot keys
+
+#+begin_src zsh
+sudo sbctl status
+sudo sbctl verify
+#+end_src
+
+** Secure Boot enrolment details
+
+Lanzaboote auto-generates and enrols Secure Boot keys on the first boot.
+After rebooting, =sbctl status= should show "Secure Boot: enabled" with
+keys enrolled and the database signed.
+
+If the keys are *not* enrolled:
+
+1. Reboot into UEFI firmware settings (*F2* during POST).
+2. Navigate to the Secure Boot section and *clear/reset the keys* (puts
+   the firmware into "Setup Mode").
+3. Save and reboot; Lanzaboote will automatically enrol its keys.
+4. Enter UEFI once more and *enable Secure Boot*.
+
+* Post-install checklist
+
+- [ ] Verify Wi-Fi: =nmcli device wifi list=
+- [ ] Set up Maestral (Dropbox): =maestral setup=
+- [ ] Import GPG keys: =gpg --import <key-file>=
+- [ ] Create =~/.zshenv.secrets= with any tokens (gitignored)
+- [ ] Configure SSH keys in =~/.ssh/=
+- [ ] Launch Emacs and let it install packages: =emacs=

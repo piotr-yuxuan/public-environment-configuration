@@ -1,0 +1,106 @@
+#+title: Getting started: macOS work machine (nix-darwin)
+#+author: piotr-yuxuan
+
+Full walkthrough for setting up a brand-new Apple Silicon macOS laptop
+with Nix, nix-darwin, Home Manager, and Homebrew.
+
+* Prerequisites
+
+- A brand-new (or freshly wiped) macOS machine (Apple Silicon; the flake
+  targets =aarch64-darwin=).
+- Admin privileges and internet access.
+
+* 1. Install Xcode command line tools
+
+#+begin_src zsh
+xcode-select --install
+#+end_src
+
+* 2. Install Nix
+
+#+begin_src zsh
+sh <(curl -L https://nixos.org/nix/install)
+#+end_src
+
+Open a *new terminal* when done.
+
+* 3. Install Homebrew
+
+#+begin_src zsh
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+eval "$(/opt/homebrew/bin/brew shellenv)"
+#+end_src
+
+** Why Homebrew alongside Nix?
+
+Some macOS GUI apps (Emacs.app via jimeh/emacs-builds, Firefox, Slack,
+VS Code, etc.) work more reliably as native =.app= bundles installed
+through Homebrew casks. A few CLI tools that are not well-packaged in
+nixpkgs for macOS (e.g. =texlive=, =lft=) also stay in Homebrew.
+
+The Home Manager activation script runs =brew bundle install= from
+=config/Brewfile= automatically on every =darwin-rebuild switch=, so
+both worlds stay in sync.
+
+* 4. Clone the configuration
+
+#+begin_src zsh
+git clone https://github.com/<your-user>/nixos.git ~/nixos
+cd ~/nixos
+#+end_src
+
+* 5. Edit your username
+
+The flake hardcodes the corporate username =example=. Verify yours:
+
+#+begin_src zsh
+whoami
+#+end_src
+
+If it differs, update these locations in =flake.nix=
+(=darwinConfigurations.work= → =home-manager= section):
+
+- =users.example= → =users.<your-username>=
+- =home.username= → ="<your-username>"=
+- =home.homeDirectory= → ="/Users/<your-username>"=
+
+Also update the git identity (name + email) in =home/work.nix=.
+
+* 6. Build and switch
+
+First build (nix-darwin is not yet installed):
+
+#+begin_src zsh
+nix run nix-darwin -- switch --flake .#work
+#+end_src
+
+All subsequent rebuilds:
+
+#+begin_src zsh
+darwin-rebuild switch --flake .#work
+#+end_src
+
+The Home Manager activation also runs =brew update && brew bundle
+install= from =config/Brewfile=, so Homebrew casks (Firefox, Emacs,
+VS Code, etc.) are installed automatically.
+
+* 7. Set Zsh as login shell
+
+#+begin_src zsh
+chsh -s /run/current-system/sw/bin/zsh
+#+end_src
+
+* 8. Clone the Emacs configuration
+
+#+begin_src zsh
+git clone https://github.com/<your-user>/emacs.d.git ~/.emacs.d
+#+end_src
+
+* Post-install checklist
+
+- [ ] Edit =home/work.nix=: set your real name and work email in the git
+  identity section
+- [ ] Import GPG keys: =gpg --import <key-file>=
+- [ ] Create =~/.zshenv.secrets= with tokens (e.g. =GITLAB_PERSONAL_ACCESS_TOKEN=)
+- [ ] Configure SSH keys in =~/.ssh/=
+- [ ] Launch Emacs and let it install packages

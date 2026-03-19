@@ -1,0 +1,99 @@
+#+TITLE: Btrfs Snapshots — Operations Guide
+#+AUTHOR: caocoa
+#+STARTUP: showall
+
+* Overview
+
+Hourly btrfs snapshots of =/home/caocoa= (subvolume =@caocoa=) into =/.snapshots/=.
+
+Managed by =btrbk= via the NixOS module in =hosts/C40C04.nix=.
+Config generated at =/etc/btrbk/home.conf=.
+
+Retention: 24 hourly · 5 daily · 3 weekly.
+
+* Checking snapshots
+
+** List all snapshots
+
+#+begin_src sh
+sudo btrbk -c /etc/btrbk/home.conf list snapshots
+#+end_src
+
+** Confirm the timer is active
+
+#+begin_src sh
+systemctl status btrbk-home.timer   # shows last and next trigger time
+#+end_src
+
+** Trigger a snapshot manually
+
+#+begin_src sh
+sudo systemctl start btrbk-home.service
+#+end_src
+
+** Check for errors
+
+#+begin_src sh
+journalctl -u btrbk-home.service --since today
+#+end_src
+
+** See how much space snapshots use
+
+#+begin_src sh
+sudo btrfs filesystem usage /
+sudo btrfs subvolume list -s /   # -s shows only snapshots
+#+end_src
+
+* Restoring from a snapshot
+
+Snapshots live under =/.snapshots/= as read-only btrfs subvolumes named
+=home.caocoa.YYYYMMDDTHHMMSS=.
+
+** Restore a single file or directory
+
+Mount the snapshot and copy what you need — no downtime required:
+
+#+begin_src sh
+# Find the snapshot you want
+sudo btrbk -c /etc/btrbk/home.conf list snapshots
+
+# Copy a file from it (example)
+cp /.snapshots/home.caocoa.20260319T1400/Documents/important.txt ~/Documents/
+#+end_src
+
+** Full home directory restore
+
+This replaces the live =@caocoa= subvolume with a snapshot.
+*Requires single-user mode or a TTY (log out of GNOME first).*
+
+#+begin_src sh
+# 1. Pick a snapshot
+SNAP="/.snapshots/home.caocoa.20260319T1400"
+
+# 2. Rename the broken subvolume out of the way
+sudo mv /home/caocoa /home/caocoa.broken
+
+# 3. Create a read-write snapshot from the chosen recovery point
+sudo btrfs subvolume snapshot "$SNAP" /home/caocoa
+
+# 4. Verify, then delete the broken one when satisfied
+sudo btrfs subvolume delete /home/caocoa.broken
+#+end_src
+
+Note: =.cache= is a separate subvolume (=@caocoa-cache=) and is unaffected.
+
+* Failure alerting
+
+The systemd unit =btrbk-home-failure-alert.service= fires on any
+=btrbk-home.service= failure (via =OnFailure==).  It does two things:
+
+1. =wall= message — appears on all open terminals/TTYs.
+2. =notify-send -u critical= — GNOME desktop notification (only while logged in).
+
+To test the alert path:
+
+#+begin_src sh
+sudo systemctl start btrbk-home-failure-alert.service
+#+end_src
+
+You should see a wall broadcast and (if in GNOME) a critical notification.
