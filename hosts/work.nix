@@ -2,7 +2,7 @@
 #
 # Here nix-darwin acts as a lightweight guest, managing Nix, shells, default preferences without trying to conform the whole machine.
 #
-# Apply: darwin-rebuild switch --flake .#work
+# Apply: darwin-rebuild switch --flake .#work --impure
 {
   pkgs,
   lib,
@@ -10,14 +10,22 @@
   ...
 }: {
   # Nix daemon
+  nix.optimise.automatic = true;
   nix = {
     settings = {
       experimental-features = ["nix-command" "flakes"];
-      auto-optimise-store = true;
+      # auto-optimise-store removed: known to corrupt the store.
       # Scoped to the machine owner so future accounts cannot push
       # arbitrary store paths bypassing signature verification.
-      # TODO: Replace "example" with your corporate username.
-      trusted-users = ["root" "example"];
+      trusted-users = let
+        user = builtins.getEnv "USER";
+      in
+        ["root"]
+        ++ (
+          if user != ""
+          then [user]
+          else []
+        );
     };
     gc = {
       automatic = true;
@@ -106,7 +114,7 @@
   system.defaults.finder = {
     AppleShowAllExtensions = true;
     AppleShowAllFiles = true; # show hidden files
-    FHIDeExtensionChangeWarning = false;
+    FXEnableExtensionChangeWarning = false;
     FXDefaultSearchScope = "SCcf"; # search current folder by default
     ShowPathbar = true;
     ShowStatusBar = true;
@@ -155,19 +163,18 @@
 
   # Application Layer Firewall (ALF)
   # If MDM already enforces the firewall these are no-ops (MDM wins).
-  # globalstate 1 = on, stealthenabled 1 = drop unsolicited ICMP.
-  system.defaults.alf = {
-    globalstate = 1;
-    stealthenabled = 1;
-    allowdownloadsignedenabled = 0;
+  networking.applicationFirewall = {
+    enable = true;
+    enableStealthMode = true; # drop unsolicited ICMP
+    allowSignedApp = false;
   };
 
   # Hostname
   # Do NOT set networking.hostName or networking.computerName.
 
   # Users
-  # Do NOT declare users.users here. Home Manager manages the user
-  # environment via the HM module wired in flake.nix.
+  # The darwin user is declared in flake.nix (users.users.${darwinUser})
+  # so Home Manager can derive home.username and home.homeDirectory.
 
   # Fonts
   # nix-darwin copies these into /Library/Fonts/Nix Fonts/ so that

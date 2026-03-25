@@ -103,11 +103,13 @@
         "-c"
         (lib.fileContents ../scripts/nix-staleness-check.sh)
       ];
-      StartCalendarInterval = [{
-        Weekday = 1;
-        Hour = 9;
-        Minute = 0;
-      }];
+      StartCalendarInterval = [
+        {
+          Weekday = 1;
+          Hour = 9;
+          Minute = 0;
+        }
+      ];
       StandardErrorPath = "/dev/null";
       StandardOutPath = "/dev/null";
     };

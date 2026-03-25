@@ -33,7 +33,7 @@
 
     # nix-darwin: declarative macOS system configuration.
     nix-darwin = {
-      url = "github:LnL7/nix-darwin";
+      url = "github:nix-darwin/nix-darwin/nix-darwin-25.11";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
@@ -52,8 +52,19 @@
     };
   };
 
-  outputs = { self, nixpkgs, nixpkgs-unstable, disko, lanzaboote, nixos-hardware, home-manager, nix-darwin, starship-gruvbox-rainbow, practicalli-clojure-deps-edn, ... }:
-  let
+  outputs = {
+    self,
+    nixpkgs,
+    nixpkgs-unstable,
+    disko,
+    lanzaboote,
+    nixos-hardware,
+    home-manager,
+    nix-darwin,
+    starship-gruvbox-rainbow,
+    practicalli-clojure-deps-edn,
+    ...
+  }: let
     # Unstable package set for x86_64-linux (C40C04)
     unstable = import nixpkgs-unstable {
       system = "x86_64-linux";
@@ -62,12 +73,12 @@
 
     # Shared NixOS configuration
     # Everything here applies to ALL NixOS machines.
-    sharedModule = { pkgs, ... }: {
+    sharedModule = {pkgs, ...}: {
       nixpkgs.config.allowUnfree = true;
 
       nix = {
         settings = {
-          experimental-features = [ "nix-command" "flakes" ];
+          experimental-features = ["nix-command" "flakes"];
           auto-optimise-store = true;
         };
         gc = {
@@ -84,7 +95,7 @@
       environment.systemPackages = with pkgs; [
         vim
         git
-        sbctl        # for debugging Secure Boot after install
+        sbctl # for debugging Secure Boot after install
         btrfs-progs
       ];
 
@@ -94,8 +105,8 @@
       # Deny all inbound by default. Open ports per-host as needed.
       networking.firewall = {
         enable = true;
-        allowedTCPPorts = [ ];
-        allowedUDPPorts = [ ];
+        allowedTCPPorts = [];
+        allowedUDPPorts = [];
       };
 
       # SSH is explicitly disabled fleet-wide. Enable per-host only if needed,
@@ -104,10 +115,10 @@
 
       # Nix daemon access
       # Only wheel users may talk to the Nix daemon (build, fetch, etc.).
-      nix.settings.allowed-users = [ "@wheel" ];
+      nix.settings.allowed-users = ["@wheel"];
       # Scoped to caocoa rather than @wheel so that future non-owner
       # accounts cannot push arbitrary store paths bypassing signatures.
-      nix.settings.trusted-users = [ "root" "caocoa" ];
+      nix.settings.trusted-users = ["root" "caocoa"];
 
       # sudo: restrict the binary to wheel group members
       security.sudo.execWheelOnly = true;
@@ -123,7 +134,7 @@
         description = "Caocoa";
         home = "/home/caocoa";
         shell = pkgs.zsh;
-        extraGroups = [ "wheel" "networkmanager" "video" "audio" ];
+        extraGroups = ["wheel" "networkmanager" "video" "audio"];
         hashedPasswordFile = "/etc/secrets/caocoa-password";
       };
 
@@ -136,86 +147,108 @@
     # Wires Home Manager for user caocoa on NixOS hosts.
     # Per-host HM overrides live in home/<host>.nix; shared config in
     # home/base.nix uses the same pattern as the standalone work config.
-    homeManagerModule = { ... }: {
+    homeManagerModule = {...}: {
       home-manager = {
-        useGlobalPkgs       = true;   # reuse the system nixpkgs instance
-        useUserPackages     = true;   # install into /etc/profiles/per-user
+        useGlobalPkgs = true; # reuse the system nixpkgs instance
+        useUserPackages = true; # install into /etc/profiles/per-user
         backupFileExtension = "hm-backup";
-        extraSpecialArgs    = { inherit unstable starship-gruvbox-rainbow practicalli-clojure-deps-edn; };
+        extraSpecialArgs = {inherit unstable starship-gruvbox-rainbow practicalli-clojure-deps-edn;};
 
         users.caocoa = {
-          imports = [ ./home/base.nix ]
-            ++ (if builtins.pathExists ./home/C40C04.nix then [ ./home/C40C04.nix ] else [ ]);
-          home.username      = "caocoa";
+          imports =
+            [./home/base.nix]
+            ++ (
+              if builtins.pathExists ./home/C40C04.nix
+              then [./home/C40C04.nix]
+              else []
+            );
+          home.username = "caocoa";
           home.homeDirectory = "/home/caocoa";
-          home.stateVersion  = "25.11";
+          home.stateVersion = "25.11";
         };
       };
     };
-
   in {
-    nixosConfigurations = {
+    nixosConfigurations =
+      {}
+      // (
+        if builtins.pathExists ./hosts/C40C04.nix
+        then {
+          C40C04 = nixpkgs.lib.nixosSystem {
+            system = "x86_64-linux";
+            specialArgs = {inherit unstable;};
+            modules = [
+              sharedModule
+              disko.nixosModules.disko
+              ./disko-config.nix
+              lanzaboote.nixosModules.lanzaboote
+              ./hardware-configuration.nix
 
-      C40C04 = nixpkgs.lib.nixosSystem {
-        system = "x86_64-linux";
-        specialArgs = { inherit unstable; };
-        modules = [
-          sharedModule
-          disko.nixosModules.disko
-          ./disko-config.nix
-          lanzaboote.nixosModules.lanzaboote
-          ./hardware-configuration.nix
+              # Framework 16 AMD 7040 hardware profile
+              nixos-hardware.nixosModules.framework-16-7040-amd
 
-          # Framework 16 AMD 7040 hardware profile
-          nixos-hardware.nixosModules.framework-16-7040-amd
+              # Home Manager: user caocoa (home/shared.nix + home/C40C04.nix)
+              home-manager.nixosModules.home-manager
+              homeManagerModule
 
-          # Home Manager: user caocoa (home/shared.nix + home/C40C04.nix)
-          home-manager.nixosModules.home-manager
-          homeManagerModule
-
-          ./hosts/C40C04.nix
-        ];
-      };
-
-      # Future: work laptop
-      # work-laptop = nixpkgs.lib.nixosSystem { ... };
-    };
+              ./hosts/C40C04.nix
+            ];
+          };
+        }
+        else {}
+      );
 
     # macOS machines (nix-darwin)
-    # Usage:  darwin-rebuild switch --flake .#work
+    # Usage:  darwin-rebuild switch --flake .#work --impure
     darwinConfigurations = {
       work = let
         unstable-darwin = import nixpkgs-unstable {
           system = "aarch64-darwin";
           config.allowUnfree = true;
         };
-      in nix-darwin.lib.darwinSystem {
-        system = "aarch64-darwin";
-        specialArgs = { unstable = unstable-darwin; };
-        modules = [
-          ./hosts/work.nix
+        # Read the current macOS username at eval time.
+        # Requires --impure so Nix can access environment variables.
+        # Falls back to "nobody" in pure mode so `nix flake check` can
+        # parse the structure without --impure.
+        envUser = builtins.getEnv "USER";
+        darwinUser =
+          if envUser != ""
+          then envUser
+          else "nobody";
+        darwinHome = "/Users/${darwinUser}";
+      in
+        nix-darwin.lib.darwinSystem {
+          system = "aarch64-darwin";
+          specialArgs = {unstable = unstable-darwin;};
+          modules = [
+            ./hosts/work.nix
 
-          home-manager.darwinModules.home-manager
-          {
-            nixpkgs.config.allowUnfree = true;
+            home-manager.darwinModules.home-manager
+            {
+              nixpkgs.config.allowUnfree = true;
 
-            home-manager = {
-              useGlobalPkgs       = true;
-              useUserPackages     = true;
-              backupFileExtension = "hm-backup";
-              extraSpecialArgs = { unstable = unstable-darwin; inherit starship-gruvbox-rainbow practicalli-clojure-deps-edn; };
+              # Declare the user so nix-darwin and Home Manager can
+              # derive home directory and shell automatically.
+              system.primaryUser = darwinUser;
+              users.users.${darwinUser}.home = darwinHome;
 
-              # TODO: Replace with your corporate username (run `whoami`).
-              users.example = {
-                imports = [ ./home/base.nix ./home/work.nix ];
-                home.username      = "example";
-                home.homeDirectory = "/Users/example";
-                home.stateVersion  = "25.11";
+              home-manager = {
+                useGlobalPkgs = true;
+                useUserPackages = true;
+                backupFileExtension = "hm-backup";
+                extraSpecialArgs = {
+                  unstable = unstable-darwin;
+                  inherit starship-gruvbox-rainbow practicalli-clojure-deps-edn;
+                };
+
+                users.${darwinUser} = {
+                  imports = [./home/base.nix ./home/work.nix];
+                  home.stateVersion = "25.11";
+                };
               };
-            };
-          }
-        ];
-      };
+            }
+          ];
+        };
     };
   };
 }

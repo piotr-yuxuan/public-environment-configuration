@@ -131,7 +131,6 @@
       # AI / ML
       unstable.ollama
       unstable.openai-whisper
-      unstable.open-webui # local web UI for Ollama / OpenAI-compatible LLMs
 
       # Build tools
       unstable.meson

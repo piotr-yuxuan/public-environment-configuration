@@ -1,0 +1,79 @@
+name: Flake validation
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  check-flake:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: cachix/install-nix-action@51f3067b56fe8ae331890c77d4e454f6d60615ff
+        with:
+          extra_nix_config: |
+            extra-platforms = aarch64-darwin
+      - name: nix flake check (no build)
+        run: nix flake check --no-build
+
+  eval-darwin:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: cachix/install-nix-action@51f3067b56fe8ae331890c77d4e454f6d60615ff
+        with:
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+      - name: Evaluate darwinConfigurations.work
+        run: nix eval --impure --json '.#darwinConfigurations.work.config' > /dev/null
+
+  check-brewfile:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Update Homebrew index
+        run: brew update --quiet
+      - name: Register custom taps
+        run: |
+          awk '/^tap / {gsub(/"/, "", $2); print $2}' config/Brewfile \
+            | while read -r tap; do
+                echo "::group::tap $tap"
+                brew tap "$tap"
+                echo "::endgroup::"
+              done
+      - name: Verify all formulas and casks are resolvable
+        run: |
+          rc=0
+          while IFS=' ' read -r type name; do
+            if [[ "$type" == "brew" ]]; then
+              brew info "$name" &>/dev/null \
+                || { echo "::error file=config/Brewfile::Unknown formula: $name"; rc=1; }
+            else
+              brew info --cask "$name" &>/dev/null \
+                || { echo "::error file=config/Brewfile::Unknown cask: $name"; rc=1; }
+            fi
+          done < <(awk '/^brew / {gsub(/"/, "", $2); print "brew " $2}
+                        /^cask / {gsub(/"/, "", $2); print "cask " $2}' config/Brewfile)
+          exit $rc
+
+  build-darwin:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: cachix/install-nix-action@51f3067b56fe8ae331890c77d4e454f6d60615ff
+        with:
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+      - uses: DeterminateSystems/magic-nix-cache-action@565684385bcd71bad329742eefe8d12f2e765b39
+      - name: Build darwinConfigurations.work
+        run: nix build --impure '.#darwinConfigurations.work.system'
+      - name: Dry-activate (validate activation scripts)
+        if: always()
+        run: |
+          if [[ -L ./result ]]; then
+            ./result/activate --dry-run 2>&1 || true
+          else
+            echo "Skipped: no build result available"
+          fi

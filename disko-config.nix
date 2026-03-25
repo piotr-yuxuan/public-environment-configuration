@@ -13,7 +13,7 @@
               type = "filesystem";
               format = "vfat";
               mountpoint = "/boot";
-              mountOptions = [ "umask=0077" ];
+              mountOptions = ["umask=0077"];
             };
           };
           luks = {
@@ -51,24 +51,24 @@
           size = "100%FREE";
           content = {
             type = "btrfs";
-            extraArgs = [ "-f" ];
+            extraArgs = ["-f"];
 
             subvolumes = {
               "@root" = {
                 mountpoint = "/";
-                mountOptions = [ "compress=zstd" "noatime" ];
+                mountOptions = ["compress=zstd" "noatime"];
               };
               "@caocoa" = {
                 mountpoint = "/home/caocoa";
-                mountOptions = [ "compress=zstd" "noatime" ];
+                mountOptions = ["compress=zstd" "noatime"];
               };
               "@caocoa-cache" = {
                 mountpoint = "/home/caocoa/.cache";
-                mountOptions = [ "compress=zstd" "noatime" ];
+                mountOptions = ["compress=zstd" "noatime"];
               };
               "@.snapshots" = {
                 mountpoint = "/.snapshots";
-                mountOptions = [ "compress=zstd" "noatime" ];
+                mountOptions = ["compress=zstd" "noatime"];
               };
             };
           };
