@@ -134,7 +134,7 @@
         description = "Caocoa";
         home = "/home/caocoa";
         shell = pkgs.zsh;
-        extraGroups = ["wheel" "networkmanager" "video" "audio"];
+        extraGroups = ["wheel" "networkmanager" "video" "audio" "kvm" "libvirtd" "input"];
         hashedPasswordFile = "/etc/secrets/caocoa-password";
       };
 

@@ -29,6 +29,88 @@ nix flake update home-manager
 
 Then rebuild and switch to apply.
 
+Updating =nixpkgs-unstable= alone is a low risk way to refresh user
+tools without touching the system foundation:
+
+#+begin_src zsh
+nix flake update nixpkgs-unstable
+#+end_src
+
+There is no coupling that forces kernel and unstable to move in
+lockstep.  A routine "upgrade day" with =nix flake update= (all
+inputs) followed by a rebuild is perfectly fine as well.
+
+* Firmware and kernel updates
+
+Three layers of firmware/kernel updates exist, each independent.
+
+** Linux kernel and CPU microcode
+
+Both come from the stable channel (=nixpkgs=).  Bumping the stable
+input and rebuilding is enough:
+
+#+begin_src zsh
+nix flake update nixpkgs
+sudo nixos-rebuild switch --flake .#C40C04
+#+end_src
+
+=boot.kernelPackages = pkgs.linuxPackages_latest= in
+=hosts/C40C04.nix= tracks the latest stable kernel.  AMD microcode is
+handled by =hardware-configuration.nix=
+(=hardware.cpu.amd.updateMicrocode=).
+
+** Device firmware (UEFI, SSD, etc.) via fwupd
+
+fwupd manages UEFI and peripheral firmware independently of Nix
+channel updates.  After enabling =services.fwupd.enable = true= in
+=hosts/C40C04.nix= and rebuilding:
+
+#+begin_src zsh
+fwupdmgr refresh
+fwupdmgr update
+#+end_src
+
+** User packages (nixpkgs-unstable)
+
+See "Update flake inputs" above.  =nix flake update nixpkgs-unstable=
+bumps user facing tools without touching the kernel or system
+foundation.
+
+* Bump to a new NixOS release
+
+When a new stable release lands (e.g. 26.05), update the channel URLs
+in =flake.nix=.  Three inputs carry a version suffix:
+
+#+begin_src nix
+# nixpkgs
+nixpkgs.url = "github:NixOS/nixpkgs/nixos-<NEW>";
+# Home Manager
+home-manager.url = "github:nix-community/home-manager/release-<NEW>";
+# nix-darwin
+nix-darwin.url = "github:nix-darwin/nix-darwin/nix-darwin-<NEW>";
+#+end_src
+
+=nixpkgs-unstable=, =disko=, =lanzaboote=, and =nixos-hardware= have
+no version suffix and need no change.
+
+Then lock and rebuild:
+
+#+begin_src zsh
+nix flake update
+# NixOS
+sudo nixos-rebuild switch --flake .#C40C04
+# macOS
+darwin-rebuild switch --flake .#work --impure
+#+end_src
+
+*Do not change =stateVersion=.*  =system.stateVersion= and
+=home.stateVersion= record the release you first installed with.  They
+control backward compatibility for stateful services and should stay
+at their original value indefinitely.
+
+Always read the release notes on nixos.org for breaking changes or
+required manual migrations before switching.
+
 * Garbage-collect old generations
 
 Automatic weekly GC is configured (deletes generations older than 30

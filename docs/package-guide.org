@@ -130,6 +130,14 @@ using it right away.
   - [[night-theme-switcher (C40C04 only)][night-theme-switcher (C40C04 only)]]
   - [[clipboard-history (C40C04 only)][clipboard-history (C40C04 only)]]
   - [[auto-power-profile (C40C04 only)][auto-power-profile (C40C04 only)]]
+- [[Virtualisation (C40C04 only)][Virtualisation (C40C04 only)]]
+  - [[qemu_kvm][qemu_kvm]]
+  - [[virt-manager][virt-manager]]
+  - [[libvirtd][libvirtd]]
+  - [[dmg2img][dmg2img]]
+  - [[p7zip][p7zip]]
+  - [[cdrtools][cdrtools]]
+  - [[tesseract][tesseract]]
 - [[Work-only packages][Work-only packages]]
   - [[go][go]]
   - [[glab][glab]]
@@ -1029,6 +1037,57 @@ Emoji picker.  Bound to =Super+.= (period).
 Status bar for Hyprland: workspaces, clock with world timezones
 (Paris, New York, London, Taipei), calendar with ISO week numbers,
 battery, network, audio, and system tray.
+
+* Virtualisation (C40C04 only)
+
+QEMU/KVM stack for running macOS guests via [[https://github.com/kholia/OSX-KVM][OSX-KVM]].
+See =scripts/osx-kvm-setup.sh= for the initial setup workflow.
+
+** qemu_kvm
+QEMU with KVM acceleration (system level).  Provides =qemu-system-x86_64=
+and =qemu-img= for creating and running VMs.
+#+begin_src sh
+qemu-img create -f qcow2 disk.img 256G
+#+end_src
+
+** virt-manager
+GTK GUI for managing libvirt/QEMU VMs.
+#+begin_src sh
+virt-manager
+#+end_src
+
+** libvirtd
+Virtualisation management daemon.  Configured at system level
+(=virtualisation.libvirtd=).  Provides =virsh= for CLI management.
+#+begin_src sh
+virsh list --all
+virsh start macOS
+#+end_src
+
+** dmg2img
+Convert Apple =.dmg= disk images to raw =.img= format.
+#+begin_src sh
+dmg2img -i BaseSystem.dmg BaseSystem.img
+#+end_src
+
+** p7zip
+7-Zip file archiver.  Used by OSX-KVM tooling for extraction.
+#+begin_src sh
+7z x archive.7z
+#+end_src
+
+** cdrtools
+CD/DVD recording tools.  Provides =mkisofs= for ISO image creation.
+#+begin_src sh
+mkisofs -o output.iso input_dir/
+#+end_src
+
+** tesseract
+OCR engine.  Used by OSX-KVM automated install helpers for screen
+recognition.
+#+begin_src sh
+tesseract image.png output_text
+#+end_src
 
 * Work-only packages
 
