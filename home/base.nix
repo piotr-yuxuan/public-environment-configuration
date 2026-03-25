@@ -131,9 +131,7 @@
       unstable.ollama
       unstable.openai-whisper
       unstable.open-webui # local web UI for Ollama / OpenAI-compatible LLMs
-    ]
-    ++ (import ../fonts.nix {inherit unstable;})
-    ++ [
+
       # Build tools
       unstable.meson
       unstable.ninja
@@ -160,7 +158,8 @@
       unstable.aspellDicts.la
       unstable.aspellDicts.es
       unstable.aspellDicts.de
-    ];
+    ]
+    ++ (import ../fonts.nix {inherit unstable;});
 
   #  Fonts
 
