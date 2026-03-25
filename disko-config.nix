@@ -22,6 +22,9 @@
               type = "luks";
               name = "cryptroot";
               settings = {
+                # TRIM passthrough: trades a small metadata leak (which blocks
+                # are free) for SSD longevity and performance.  Acceptable on
+                # a personal laptop with physical security.
                 allowDiscards = true;
               };
               content = {

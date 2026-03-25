@@ -166,7 +166,7 @@ man() {
 #+end_src
 
 With =bat= as the man pager (configured in =home/base.nix=), this is
-less necessary — but it's a nice fallback.
+less necessary, but it's a nice fallback.
 
 * Better cat and ls                                                  :tty:
 
@@ -316,7 +316,7 @@ alias magit-status="emacsclient --create-frame --no-wait --eval '(magit-status)'
 
 On macOS, the plist system doesn't support ordering (unlike systemd).
 If Emacs starts before =pinentry= is available, Magit GPG-signed commits
-fail. Simpler to let Emacs start on first use — oh-my-zsh's =emacs=
+fail. Simpler to let Emacs start on first use: oh-my-zsh's =emacs=
 plugin or a manual =emacsclient= wrapper handle this.
 
 On NixOS, Emacs runs as a systemd user service with proper dependency

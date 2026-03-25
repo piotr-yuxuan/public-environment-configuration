@@ -1,0 +1,16 @@
+# USB-C monitor (Iiyama PL3494WQ) hotplug stabilisation
+#
+# AMD UCSI firmware has a race in DP Alt Mode negotiation that
+# tears down the USB4 tunnel, disconnecting the monitor's Realtek
+# hub (0bda:5420) and restarting the handshake.  Keeping runtime
+# power management off on the hub and on the xHCI controller
+# prevents low power transitions that widen the race window.
+
+# 1. Realtek hub: keep it awake between enumeration attempts.
+ACTION=="add", SUBSYSTEM=="usb", ATTR{idVendor}=="0bda", ATTR{idProduct}=="5420", TEST=="power/control", ATTR{power/control}="on"
+
+# 2. xHCI controller behind the USB-C port (PCI 0000:c3:00.3):
+#    disable runtime PM and D3cold so the controller never
+#    powers down during Alt Mode negotiation.
+ACTION=="add", SUBSYSTEM=="pci", KERNEL=="0000:c3:00.3", ATTR{power/control}="on"
+ACTION=="add", SUBSYSTEM=="pci", KERNEL=="0000:c3:00.3", ATTR{d3cold_allowed}="0"

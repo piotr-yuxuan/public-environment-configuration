@@ -1,0 +1,213 @@
+#+TITLE: Security posture (work)
+#+AUTHOR: caocoa
+#+STARTUP: overview
+
+Security hardening rationale and audit checklist for the work host
+(corporate macOS, aarch64-darwin, MDM managed).
+
+nix-darwin acts as a lightweight guest.  MDM controls FileVault, most
+firewall policies, Gatekeeper, and software updates.  This document
+covers the hardening measures that nix-darwin and Home Manager add on
+top of the MDM baseline.
+
+* Table of contents :TOC_2_org:
+- [[Full disk encryption (FileVault)][Full disk encryption (FileVault)]]
+- [[Application Layer Firewall][Application Layer Firewall]]
+- [[ICMP redirect rejection][ICMP redirect rejection]]
+- [[Gatekeeper verification][Gatekeeper verification]]
+- [[Nix daemon trust model][Nix daemon trust model]]
+- [[sudo hardening (Touch ID)][sudo hardening (Touch ID)]]
+- [[Homebrew security environment][Homebrew security environment]]
+- [[SSH client hardening][SSH client hardening]]
+- [[Git supply chain verification][Git supply chain verification]]
+- [[Nix input staleness check][Nix input staleness check]]
+- [[Application sandboxing (TCC)][Application sandboxing (TCC)]]
+- [[Considerations for periodic audits][Considerations for periodic audits]]
+
+* Full disk encryption (FileVault)
+
+FileVault is enforced by MDM.  nix-darwin does not manage it.
+
+*Audit point:* run =fdesetup status= and verify "FileVault is On."
+
+* Application Layer Firewall
+
+=system.defaults.alf= configures the macOS Application Layer Firewall:
+
+| Setting                       | Value | Purpose                                  |
+|-------------------------------+-------+------------------------------------------|
+| =globalstate=                 |     1 | Firewall enabled                         |
+| =stealthenabled=              |     1 | Stealth mode: drop unsolicited ICMP      |
+| =allowdownloadsignedenabled=  |     0 | Block incoming for unsigned downloads    |
+
+If MDM already manages the firewall, these settings are no-ops (MDM
+policy wins).
+
+*Audit point:* open System Settings > Network > Firewall and confirm
+it shows "Firewall is active."  Alternatively run
+=/usr/libexec/ApplicationFirewall/socketfilterfw --getglobalstate=.
+
+* ICMP redirect rejection
+
+The activation script sets =net.inet.icmp.drop_redirect=1= on every
+=darwin-rebuild switch=.  This prevents ICMP redirect injection
+attacks on untrusted Wi-Fi networks (coffee shops, conferences).
+
+*Audit point:* run =sysctl net.inet.icmp.drop_redirect= and verify
+the value is 1.  Note: this sysctl does not persist across reboots
+natively; it is reapplied on the next =darwin-rebuild switch=.
+
+* Gatekeeper verification
+
+The activation script checks whether Gatekeeper assessments are
+enabled and prints a warning to stderr if they are not.  This is a
+detection measure, not enforcement (MDM should enforce it).
+
+*Audit point:* run =spctl --status= and verify "assessments enabled."
+
+* Nix daemon trust model
+
+=nix.settings.trusted-users= is set to =["root" "example"]= (replace
+=example= with your corporate username).  This scopes store
+substitution authority to the machine owner, preventing future
+accounts from pushing arbitrary derivations.
+
+*Audit point:* run =nix show-config | grep trusted-users= and verify
+only the expected user is listed.
+
+* sudo hardening (Touch ID)
+
+=security.pam.services.sudo_local.touchIdAuth = true= enables Touch
+ID for sudo authentication.  This provides biometric gating: shoulder
+surfing a password is not enough to escalate privileges.
+
+macOS sudo configuration (=/etc/sudoers=) is MDM managed.  nix-darwin
+does not modify it beyond the PAM service.
+
+* Homebrew security environment
+
+Home Manager sets the following environment variables for Homebrew:
+
+| Variable                        | Value            | Purpose                              |
+|---------------------------------+------------------+--------------------------------------|
+| =HOMEBREW_CASK_OPTS=            | =--require-sha=  | Require checksum on every cask       |
+| =HOMEBREW_FORCE_BREWED_CURL=    | =1=              | Use Homebrew's curl (patched)        |
+| =HOMEBREW_NO_ANALYTICS=         | =1=              | Disable telemetry                    |
+| =HOMEBREW_NO_GITHUB_API=        | =1=              | No GitHub API calls                  |
+| =HOMEBREW_NO_INSECURE_REDIRECT= | =1=              | Block HTTP redirects                 |
+| =HOMEBREW_NO_ENV_HINTS=         | =1=              | Suppress hint banners                |
+
+*Audit point:* run =env | grep HOMEBREW= and verify all variables are
+set.
+
+* SSH client hardening
+
+Shared with C40C04 via =home/base.nix=.  Home Manager configures SSH
+with:
+
+- =IdentitiesOnly yes=: only the declared key is offered.
+- =PasswordAuthentication no=: password fallback disabled.
+- =HashKnownHosts yes=: host names in =known_hosts= are hashed.
+- =StrictHostKeyChecking accept-new=: new hosts are accepted once,
+  then pinned.
+- =ForwardAgent no=: agent forwarding off by default.
+
+*Audit point:* run =ssh -G github.com= and verify the settings match.
+
+* Git supply chain verification
+
+Shared with C40C04 via =home/base.nix=.  =transfer.fsckObjects=,
+=fetch.fsckObjects=, and =receive.fsckObjects= are enabled.  The
+cleartext =git://= protocol is blocked; only HTTPS and SSH are
+allowed.
+
+*Audit point:* run =git config --global --get transfer.fsckObjects=.
+
+* Nix input staleness check
+
+A launchd agent (=com.user.nix-staleness-check=) runs weekly on
+Monday at 09:00.  It queries =nix flake metadata= and fires a macOS
+notification if any input was last updated more than 14 days ago.
+
+launchd automatically catches up missed triggers after sleep or
+shutdown, so a laptop that was off over the weekend will run the check
+on the next login.
+
+*Audit point:* check the agent status with
+=launchctl list | grep staleness=.
+
+* Application sandboxing (TCC)
+
+macOS Transparency, Consent, and Control (TCC) restricts per-app
+access to sensitive directories (Desktop, Documents, Downloads).  For
+side-loaded apps like VSCode that are not subject to the App Store
+sandbox, TCC is the primary containment mechanism.
+
+Recommended manual configuration in System Settings > Privacy &
+Security > Files and Folders:
+
+- Deny VSCode access to Desktop and Documents unless a project lives
+  there.
+- Deny access to Removable Volumes.
+- Allow only the minimum necessary for the code directories you work
+  in.
+
+nix-darwin cannot manage TCC programmatically (it requires user
+consent via the GUI or MDM profiles).
+
+*Audit point:* open System Settings > Privacy & Security > Files and
+Folders and review the permissions granted to each application.
+
+* Considerations for periodic audits
+
+** Flake inputs
+
+Run =nix flake metadata= in the nixos directory and review the dates
+of each input.  If any are more than two weeks old, run =nix flake
+update= and rebuild.  The staleness agent should warn you
+automatically.
+
+** Firewall status
+
+Run =/usr/libexec/ApplicationFirewall/socketfilterfw --getglobalstate=
+and verify it reports enabled.
+
+** Listening ports
+
+Run =lsof -iTCP -sTCP:LISTEN -P -n= and verify nothing unexpected is
+listening.
+
+** FileVault status
+
+Run =fdesetup status= and confirm encryption is active.
+
+** Gatekeeper status
+
+Run =spctl --status= and confirm assessments are enabled.
+
+** ICMP redirect sysctl
+
+Run =sysctl net.inet.icmp.drop_redirect= and verify the value is 1.
+If it has been reset (e.g. after a macOS update), run
+=darwin-rebuild switch= to reapply.
+
+** OpenBSM audit logs
+
+If MDM enables the audit daemon, review logs with
+=sudo praudit -l /var/audit/current | tail -50=.
+
+** Homebrew integrity
+
+Run =brew doctor= and review any warnings about insecure
+configurations or outdated formulae.
+Run =brew update && brew outdated= to check for lagging packages.
+
+** Nix store trust
+
+Run =nix path-info --sigs /run/current-system= (if available) and
+verify signatures come from trusted keys.
+
+** TCC permissions
+
+Open System Settings > Privacy & Security > Files and Folders.  Review
+per-app access and revoke anything no longer needed.

@@ -4,7 +4,7 @@ tap "brunobonacci/lazy-tools"
 tap "jimeh/emacs-builds"
 
 brew "jenv" # Consider pkgs.jdk + home-manager PATH management
-brew "lft" # kept — not found in nixpkgs 25.11
+brew "lft" # kept because it's not found in nixpkgs 25.11
 brew "likec4" # vs-code extension dependency
 brew "texlive" # Complex meta-package; brew's texlive handles macOS
                # font/path registration more reliably than nixpkgs
@@ -12,7 +12,7 @@ brew "texlive" # Complex meta-package; brew's texlive handles macOS
 brew "zsh-autocomplete" # No equivalent home-manager module
 
 # Fonts are managed by nix-darwin (fonts.packages in hosts/work.nix),
-# which rsyncs them to /Library/Fonts/Nix Fonts/ — visible to Core Text
+# which rsyncs them to /Library/Fonts/Nix Fonts/ and makes them visible to Core Text
 # and all macOS apps. No Homebrew casks needed.
 
 # Keep GUI apps handled by Brewfile for best macOS integration.

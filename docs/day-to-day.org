@@ -54,10 +54,10 @@ home-manager generations
 * Roll back
 
 #+begin_src zsh
-# NixOS — previous generation
+# NixOS: previous generation
 sudo nixos-rebuild switch --rollback
 
-# Home Manager — previous generation
+# Home Manager: previous generation
 home-manager switch --rollback
 #+end_src
 
@@ -85,7 +85,7 @@ To upgrade everything and clean up stale downloads:
 brew update
 brew upgrade
 brew upgrade --cask --greedy   # reinstall latest version of
-                               # unversioned casks — takes more time
+                               # unversioned casks, which takes more time
 brew cleanup -s
 echo "you should commit your environment configuration"
 #+end_src
@@ -100,10 +100,10 @@ brew reinstall --cask <name> # force-reinstall a broken cask
 * Build without switching
 
 #+begin_src zsh
-# NixOS — build only
+# NixOS: build only
 sudo nixos-rebuild build --flake .#C40C04
 
-# macOS — build only
+# macOS: build only
 darwin-rebuild build --flake .#work
 #+end_src
 
@@ -143,7 +143,7 @@ nixos-rebuild build-vm --flake .#C40C04
   pointing to =/etc/secrets/caocoa-password= (which does not exist inside
   the VM), you may need to temporarily add
   =users.users.caocoa.password = "test";= in a local override.
-- The VM opens a QEMU window — you need a graphical session or VNC.
+- The VM opens a QEMU window, so you need a graphical session or VNC.
 - Pass =-m 4096= to give the VM more RAM if GNOME feels sluggish.
 
 * Flake evaluation check
@@ -199,6 +199,71 @@ find ~ -name '*.hm-backup' -ls
 find ~ -name '*.hm-backup' -delete
 #+end_src
 
+* Hyprland session (C40C04)
+
+** Switching sessions at login
+
+At the GDM login screen, click the gear icon (bottom right of the
+password field) and select *Hyprland* instead of *GNOME*.  On the next
+login GDM remembers the last chosen session.
+
+To switch back to GNOME, pick *GNOME* from the same gear menu.
+
+** Key bindings cheat sheet
+
+| Key                 | Action                        |
+|---------------------+-------------------------------|
+| =Super+Return=      | Open foot terminal            |
+| =Super+D=           | Application launcher (fuzzel) |
+| =Super+Q=           | Close window                  |
+| =Super+F=           | Toggle fullscreen             |
+| =Super+V=           | Toggle floating               |
+| =Super+L=           | Lock screen (hyprlock)        |
+| =Super+E=           | File manager (Nautilus)       |
+| =Super+Shift+V=     | Clipboard history             |
+| =Super+.=           | Emoji picker (bemoji)         |
+| =Print=             | Screenshot region to clipboard|
+| =Super+Print=       | Screenshot full screen        |
+| =Super+1= to =0=   | Switch workspace              |
+| =Super+Shift+1..0=  | Move window to workspace      |
+| =Super+Arrow=       | Move focus                    |
+| =Super+M=           | Exit Hyprland                 |
+
+Volume (=XF86Audio*=) and brightness (=XF86MonBrightness*=) hardware
+keys work as expected.
+
+** Rolling back to GNOME
+
+GNOME is untouched by the Hyprland integration.  To return to GNOME,
+simply select it at the GDM session picker.  To fully remove Hyprland,
+revert the changes in =hosts/C40C04.nix= and =home/C40C04.nix=, then
+rebuild.
+
+** Test VM
+
+Build and run a QEMU VM that mirrors the full C40C04 config (Hyprland
+uses software rendering inside the VM):
+
+#+begin_src zsh
+cd ~/nixos
+nixos-rebuild build-vm --flake .#C40C04
+./result/bin/run-C40C04-vm
+#+end_src
+
+Log in as =caocoa= with password =test=.  Pick the Hyprland session at
+the GDM session picker.
+
+The VM shares the complete host configuration so changes to the
+Hyprland setup can be previewed before deploying to bare metal.  Edit,
+rebuild the VM, and relaunch to iterate.
+
+*** Limitations
+
+Hyprland runs with software rendering (=WLR_RENDERER_ALLOW_SOFTWARE=1=)
+inside the VM.  Animations may be sluggish.  Hardware cursors are
+disabled (=WLR_NO_HARDWARE_CURSORS=1=).  GPU intensive features work
+correctly only on bare metal.
+
 If HM refuses to proceed entirely, remove the offending file manually
 and re-run the switch.
 
@@ -249,8 +314,8 @@ fc-list | grep -i iosevka
 *** Platform-specific font troubleshooting
 
 *NixOS*: Fonts are installed via Home Manager (=home.packages=) and
-made available through fontconfig.  Rebuild and *log out / log in* —
-GNOME reloads fontconfig on session start.
+made available through fontconfig.  Rebuild and *log out / log in*
+for GNOME to reload fontconfig on session start.
 
 *macOS*: nix-darwin copies font files to =/Library/Fonts/Nix Fonts/=.
 macOS Core Text discovers them after =darwin-rebuild switch=.  If a
@@ -263,7 +328,7 @@ sudo atsutil databases -remove  # reset font caches
 ** Secrets file
 
 Tokens are loaded from =~/.zshenv.secrets= (sourced in every Zsh
-session).  This file is *gitignored* — create it manually:
+session).  This file is *gitignored*, so create it manually:
 
 #+begin_src zsh
 cat > ~/.zshenv.secrets << 'EOF'

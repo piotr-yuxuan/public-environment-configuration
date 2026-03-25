@@ -1,4 +1,4 @@
-#+TITLE: Package Guide — Quick Tour
+#+TITLE: Package guide: quick tour
 #+AUTHOR: caocoa
 #+STARTUP: overview
 
@@ -100,6 +100,8 @@ using it right away.
   - [[gpg][gpg]]
   - [[age][age]]
   - [[sops][sops]]
+  - [[firejail (C40C04 only)][firejail (C40C04 only)]]
+  - [[auditd (C40C04 only)][auditd (C40C04 only)]]
 - [[Shell & prompt][Shell & prompt]]
   - [[zsh][zsh]]
   - [[starship][starship]]
@@ -119,6 +121,14 @@ using it right away.
   - [[difftastic][difftastic]]
   - [[dust / duf][dust / duf]]
   - [[compsize][compsize]]
+  - [[bluez (Bluetooth)][bluez (Bluetooth)]]
+  - [[date-menu-formatter (C40C04 only)][date-menu-formatter (C40C04 only)]]
+  - [[emoji-copy (C40C04 only)][emoji-copy (C40C04 only)]]
+  - [[grand-theft-focus (C40C04 only)][grand-theft-focus (C40C04 only)]]
+  - [[appindicator (C40C04 only)][appindicator (C40C04 only)]]
+  - [[night-theme-switcher (C40C04 only)][night-theme-switcher (C40C04 only)]]
+  - [[clipboard-history (C40C04 only)][clipboard-history (C40C04 only)]]
+  - [[auto-power-profile (C40C04 only)][auto-power-profile (C40C04 only)]]
 - [[Work-only packages][Work-only packages]]
   - [[go][go]]
   - [[glab][glab]]
@@ -150,7 +160,7 @@ pkg-config --cflags --libs enchant-2   # print -I and -l flags for enchant
 
 ** enchant
 Spell-checking meta-library.  Jinx (Emacs) compiles against it.  You
-rarely call it directly — it is a compile-time dependency.
+rarely call it directly. It is a compile-time dependency.
 
 ** meson / ninja
 Modern build system pair.  Meson generates ninja files, ninja executes them.
@@ -192,7 +202,7 @@ clojure -M:test                # run tests via alias in deps.edn
 #+end_src
 
 ** babashka
-Fast Clojure scripting — no JVM startup.
+Fast Clojure scripting with no JVM startup.
 #+begin_src sh
 bb -e '(+ 1 2)'                                # quick expression
 bb -e '(-> (slurp "data.json") (json/parse-string))'
@@ -215,7 +225,7 @@ neil new scratch my-project      # scaffold a new project
 #+end_src
 
 ** Practicalli deps.edn
-Not a package — a flake input.  The community =deps.edn= from
+Not a package, but a flake input.  The community =deps.edn= from
 =practicalli/clojure-deps-edn= is symlinked to
 =~/.config/clojure/deps.edn=.  It gives you dozens of ready-made
 aliases:
@@ -278,7 +288,7 @@ prettier --check .
 * Search & navigation
 
 ** ripgrep
-Recursive regex search — faster than grep.
+Recursive regex search, faster than grep.
 #+begin_src sh
 rg "TODO" src/                 # search for TODO in src/
 rg -t py "import os"           # search only Python files
@@ -293,7 +303,7 @@ ag --clojure "defn"            # search only Clojure files
 #+end_src
 
 ** fzf
-Fuzzy finder — pipes anything into an interactive selector.
+Fuzzy finder that pipes anything into an interactive selector.
 #+begin_src sh
 vim $(fzf)                     # pick a file, open in vim
 history | fzf                  # search shell history
@@ -301,7 +311,7 @@ rg --files | fzf --preview 'bat {}'
 #+end_src
 
 ** zoxide
-Smarter =cd= — learns your most-visited directories.
+Smarter =cd= that learns your most-visited directories.
 #+begin_src sh
 z nixos                        # jump to most-used dir matching "nixos"
 zi                             # interactive selection
@@ -340,7 +350,7 @@ cat data.json | jq -r '.[] | .id'
 #+end_src
 
 ** yq-go
-YAML processor — same idea as jq.
+YAML processor, same idea as jq.
 #+begin_src sh
 yq '.services.web.image' docker-compose.yml
 yq -i '.version = "2"' config.yaml          # edit in place
@@ -389,7 +399,7 @@ echo "wifi secret" | qrencode -t UTF8        # print QR in terminal
 #+end_src
 
 ** duckdb
-In-process analytical SQL engine — like SQLite for analytics.
+In-process analytical SQL engine like SQLite for analytics.
 #+begin_src sh
 duckdb                                       # interactive REPL
 duckdb -c "SELECT count(*) FROM 'data.csv'"
@@ -477,7 +487,7 @@ sops --age $(cat ~/.config/sops/age/keys.txt | grep public) -e plain.yaml > enc.
 #+end_src
 
 ** age
-Modern file encryption — simpler than GPG.
+Modern file encryption, simpler than GPG.
 #+begin_src sh
 age-keygen -o key.txt                          # generate a keypair
 age -r age1... -o secret.enc secret.txt        # encrypt to a recipient
@@ -520,7 +530,7 @@ cfn-lint -f json template.yaml                 # JSON output for CI
 #+end_src
 
 ** rain
-CloudFormation deploy / diff CLI — much better UX than =aws cloudformation=.
+CloudFormation deploy / diff CLI with much better UX than =aws cloudformation=.
 #+begin_src sh
 rain deploy template.yaml my-stack             # deploy (waits, streams events)
 rain diff template.yaml my-stack               # show what would change
@@ -532,7 +542,7 @@ rain fmt template.yaml                         # format a CFN template
 * Load testing
 
 ** k6
-Modern load testing — tests are written in JavaScript.
+Modern load testing with tests written in JavaScript.
 #+begin_src sh
 # Create a test script:
 cat > test.js <<'EOF'
@@ -546,14 +556,14 @@ k6 run --vus 50 --duration 30s test.js         # 50 virtual users for 30s
 #+end_src
 
 ** vegeta
-HTTP load testing — pipe-based, composable.
+HTTP load testing that is pipe-based and composable.
 #+begin_src sh
 echo "GET https://example.com/" | vegeta attack -duration=10s | vegeta report
 echo "GET https://example.com/" | vegeta attack -rate=100/s | vegeta plot > plot.html
 #+end_src
 
 ** hey
-Simple HTTP load generator — one command, instant results.
+Simple HTTP load generator: one command, instant results.
 #+begin_src sh
 hey -n 1000 -c 50 https://example.com/        # 1000 requests, 50 concurrent
 hey -m POST -d '{"key":"val"}' -T "application/json" https://api.example.com/
@@ -572,7 +582,7 @@ latexmk -c                     # clean auxiliary files
 #+end_src
 
 ** tectonic
-Self-contained TeX engine — downloads packages on demand.
+Self-contained TeX engine that downloads packages on demand.
 #+begin_src sh
 tectonic document.tex          # compile (fetches missing packages automatically)
 tectonic -X build              # build a Tectonic.toml project
@@ -588,7 +598,7 @@ LaTeX IDE with integrated PDF viewer, build system, and symbol tables.
 * Music & audio
 
 ** picard
-MusicBrainz Picard — automatic music tagger.
+MusicBrainz Picard for automatic music tagging.
 #+begin_src sh
 picard                         # launch GUI
 picard /path/to/album/         # open a directory directly
@@ -596,27 +606,27 @@ picard /path/to/album/         # open a directory directly
 Drag files into the left pane, click "Scan" or "Lookup", then "Save".
 
 ** lilypond (C40C04 only)
-Music engraving — write scores in text, produce publication-quality PDFs.
+Music engraving: write scores in text and produce publication-quality PDFs.
 #+begin_src sh
 lilypond score.ly              # compile to PDF + MIDI
 lilypond -o output score.ly    # specify output prefix
 #+end_src
 
 ** frescobaldi (C40C04 only)
-GUI editor for LilyPond — live score preview, MIDI playback, syntax
+GUI editor for LilyPond with live score preview, MIDI playback, syntax
 highlighting.
 
 ** timidity (C40C04 only)
-MIDI playback — used by Frescobaldi for score preview audio.
+MIDI playback used by Frescobaldi for score preview audio.
 #+begin_src sh
 timidity output.midi           # play a MIDI file
 #+end_src
 
 ** audacity (C40C04 only)
-Audio editor — record, cut, filter, mix.
+Audio editor for recording, cutting, filtering, and mixing.
 
 ** vlc (C40C04 only)
-Media player — plays virtually any audio/video format.
+Media player that handles virtually any audio/video format.
 #+begin_src sh
 vlc file.mp4
 cvlc --play-and-exit file.mp3  # headless playback
@@ -628,7 +638,7 @@ cvlc --play-and-exit file.mp3  # headless playback
 JVM monitoring and profiling GUI.  Attach to running JVM processes,
 inspect heap, threads, CPU sampling.
 #+begin_src sh
-visualvm                       # launch GUI — auto-detects local JVMs
+visualvm                       # launch GUI that auto-detects local JVMs
 visualvm --openjmx jmx://host:port   # connect to a remote JVM
 #+end_src
 
@@ -641,7 +651,7 @@ asprof -e alloc -f alloc.html <PID>  # profile memory allocations
 #+end_src
 
 ** flamegraph
-Brendan Gregg's FlameGraph scripts — turn perf/DTrace stacks into SVGs.
+Brendan Gregg's FlameGraph scripts that turn perf/DTrace stacks into SVGs.
 #+begin_src sh
 # Typical Linux perf workflow:
 perf record -g -p <PID> -- sleep 10
@@ -670,7 +680,7 @@ whisper recording.wav --model small --output_format srt   # produce subtitles
 Local web UI for Ollama (and OpenAI-compatible APIs).
 #+begin_src sh
 open-webui serve               # start on http://localhost:8080
-# Then open the URL in your browser — chat interface with model selection.
+# Then open the URL in your browser for a chat interface with model selection.
 #+end_src
 
 * Email
@@ -727,7 +737,7 @@ echo "Il mangent des pomme." | grammalecte-cli
 * Encryption & security
 
 ** gpg
-GNU Privacy Guard — encrypt, sign, verify.
+GNU Privacy Guard for encryption, signing, and verification.
 #+begin_src sh
 gpg --gen-key                                  # create a key pair
 gpg -e -r recipient@email.com file.txt         # encrypt
@@ -745,6 +755,25 @@ age -d -i key.txt secret.enc > secret.txt
 
 ** sops
 See [[*sops][IaC / Cloud § sops]] above.
+
+** firejail (C40C04 only)
+Filesystem sandboxing for GUI applications.  VSCode runs through
+firejail with a whitelist restricting access to project directories
+and blocking =~/.ssh=, =~/.gnupg=, and other secrets.
+#+begin_src sh
+firejail --list                # show running sandboxed processes
+firejail --tree                # sandbox hierarchy
+firejail --debug code          # launch with debug logging
+#+end_src
+
+** auditd (C40C04 only)
+Linux kernel audit daemon.  Logs execve calls, password file changes,
+and Secure Boot key modifications to =/var/log/audit/audit.log=.
+#+begin_src sh
+sudo ausearch -k exec --start recent   # recent process executions
+sudo aureport --summary                # high-level audit summary
+sudo ausearch -k secureboot            # Secure Boot key events
+#+end_src
 
 * Shell & prompt
 
@@ -787,7 +816,7 @@ htop                           # classic process viewer (tree mode enabled)
 #+end_src
 
 ** tealdeer
-Fast =tldr= client — simplified, example-driven man pages.
+Fast =tldr= client with simplified, example-driven man pages.
 #+begin_src sh
 tldr tar                       # quick tar examples
 tldr ffmpeg                    # quick ffmpeg examples
@@ -831,7 +860,7 @@ mmdc -i diagram.mmd -o diagram.png
 #+end_src
 
 ** difftastic
-Structural diff — understands syntax, not just lines.
+Structural diff that understands syntax, not just lines.
 #+begin_src sh
 difft old.py new.py
 GIT_EXTERNAL_DIFF=difft git diff HEAD~1      # use with git
@@ -850,6 +879,146 @@ Show compression ratio of files on btrfs.  Requires root.
 sudo compsize /                # whole filesystem compression stats
 sudo compsize /nix/store       # compression ratio for /nix/store
 #+end_src
+
+** bluez (Bluetooth)
+Bluetooth protocol stack.  Enabled via =hardware.bluetooth.enable= and
+managed by the declarative whitelist in =hosts/C40C04/bluetooth-devices.nix=.
+Only whitelisted devices survive a rebuild; unknown peripherals are forgotten.
+#+begin_src sh
+bluetoothctl devices            # list known devices
+bluetoothctl info 50:5E:5C:8E:7F:24   # inspect a specific device
+bluetoothctl pair <address>     # interactively pair a new device
+#+end_src
+
+** USB-C monitor hotplug stabilisation
+Workaround for a known Infineon PD controller firmware race on
+Framework AMD laptops that causes the Iiyama PL3494WQ's built-in
+Realtek USB hub to enter a rapid connect/disconnect cycle.  No
+upstream kernel patch or firmware update exists (as of March 2026).
+Configured in =hosts/C40C04.nix=.
+
+References:
+- https://community.frame.work/t/tracking-usb-c-error-on-boot/52012
+- https://community.frame.work/t/display-connecting-infinitely-via-usb-c/68717
+
+Levers:
+- udev (=config/udev/99-iiyama-usb-hub.rules=) pins the Realtek hub
+  and xHCI controller to active power.
+- Watchdog service (=usbc-monitor-stabilize=) detects rapid
+  disconnects and reloads =ucsi_acpi= + rebinds the xHCI controller
+  to break the cycle.
+#+begin_src sh
+systemctl status usbc-monitor-stabilize              # watchdog running
+cat /sys/bus/pci/devices/0000:c3:00.3/power/control   # should be on
+cat /sys/bus/pci/devices/0000:c3:00.3/d3cold_allowed   # should be 0
+#+end_src
+
+** date-menu-formatter (C40C04 only)
+GNOME Shell extension that replaces the panel clock with a custom
+Luxon format string.  Configured via dconf in =home/C40C04.nix=.
+
+** emoji-copy (C40C04 only)
+GNOME Shell extension providing a searchable emoji picker.  Click the
+panel icon or press the keyboard shortcut to open it, search by name,
+and copy an emoji to the clipboard.
+
+** grand-theft-focus (C40C04 only)
+GNOME Shell extension that suppresses the annoying "… is ready"
+notification banner and immediately focuses the requesting window.
+
+** appindicator (C40C04 only)
+GNOME Shell extension that adds a system tray to the top panel for
+apps using legacy StatusNotifierItem or libappindicator icons (Maestral,
+VLC, Signal, etc.).
+
+** night-theme-switcher (C40C04 only)
+GNOME Shell extension that automatically switches between light and
+dark GTK/Shell themes based on a manual schedule or sunrise/sunset at
+your location.
+
+** clipboard-history (C40C04 only)
+GNOME Shell extension that keeps a persistent clipboard ring
+accessible from the panel, with search and pinned entries.
+
+** auto-power-profile (C40C04 only)
+GNOME Shell extension that automatically switches between power saver,
+balanced, and performance power profiles based on battery state and
+AC/battery connection.
+
+* Hyprland session (C40C04 only)
+
+The Hyprland tiling Wayland compositor runs as an alternative session
+alongside GNOME.  Pick it at the GDM login screen.
+
+** foot
+Lightweight Wayland terminal emulator.
+#+begin_src sh
+foot                            # launch a terminal
+foot -e htop                    # launch with a specific command
+#+end_src
+
+** fuzzel
+Wayland application launcher (dmenu style).  Bound to =Super+D=.
+#+begin_src sh
+fuzzel                          # interactive launcher
+echo -e "opt1\nopt2" | fuzzel --dmenu   # scripted picker
+#+end_src
+
+** mako
+Wayland notification daemon.  Started automatically by Hyprland.
+#+begin_src sh
+makoctl dismiss                 # dismiss the latest notification
+makoctl dismiss --all           # dismiss all
+makoctl list                    # list active notifications
+#+end_src
+
+** grim / slurp
+Screenshot pipeline.  =Print= captures a region, =Super+Print= the
+full screen.
+#+begin_src sh
+grim -g "$(slurp)" - | wl-copy   # region to clipboard
+grim screenshot.png               # full screen to file
+#+end_src
+
+** hyprlock
+Hyprland screen locker.  Bound to =Super+L=.
+
+** hypridle
+Idle management daemon: dims screen after 5 min, locks after 10 min,
+turns off display after 15 min, suspends after 30 min.
+
+** brightnessctl
+Backlight control.  Bound to =XF86MonBrightness= keys.
+#+begin_src sh
+brightnessctl set 50%           # set to 50 %
+brightnessctl info              # current brightness
+#+end_src
+
+** pavucontrol
+PipeWire/PulseAudio volume mixer GUI.  Click the volume indicator in
+Waybar to open it.
+
+** cliphist
+Clipboard history manager.  Bound to =Super+Shift+V=.
+#+begin_src sh
+cliphist list                   # show history
+cliphist wipe                   # clear history
+#+end_src
+
+** wf-recorder
+Screen recording for Wayland.
+#+begin_src sh
+wf-recorder -f recording.mp4               # record full screen
+wf-recorder -g "$(slurp)" -f region.mp4    # record a region
+#+end_src
+
+** bemoji
+Emoji picker.  Bound to =Super+.= (period).
+
+** waybar
+Status bar for Hyprland: workspaces, clock with world timezones
+(Paris, New York, London, Taipei), calendar with ISO week numbers,
+battery, network, audio, and system tray.
 
 * Work-only packages
 

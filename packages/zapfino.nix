@@ -1,5 +1,8 @@
-{ stdenvNoCC, fetchurl, unzip }:
-
+{
+  stdenvNoCC,
+  fetchurl,
+  unzip,
+}:
 stdenvNoCC.mkDerivation {
   pname = "zapfino";
   version = "1";
@@ -9,7 +12,7 @@ stdenvNoCC.mkDerivation {
     sha256 = "0dwbf21rmzvyzzpa110ipm8ain03vrawsngbg2qs0pnndn1mwsh6";
   };
 
-  nativeBuildInputs = [ unzip ];
+  nativeBuildInputs = [unzip];
 
   unpackPhase = ''
     unzip $src

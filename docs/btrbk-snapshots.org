@@ -1,4 +1,4 @@
-#+TITLE: Btrfs Snapshots — Operations Guide
+#+TITLE: Btrfs snapshots: operations guide
 #+AUTHOR: caocoa
 #+STARTUP: showall
 
@@ -51,7 +51,7 @@ Snapshots live under =/.snapshots/= as read-only btrfs subvolumes named
 
 ** Restore a single file or directory
 
-Mount the snapshot and copy what you need — no downtime required:
+Mount the snapshot and copy what you need with no downtime required:
 
 #+begin_src sh
 # Find the snapshot you want
@@ -87,8 +87,12 @@ Note: =.cache= is a separate subvolume (=@caocoa-cache=) and is unaffected.
 The systemd unit =btrbk-home-failure-alert.service= fires on any
 =btrbk-home.service= failure (via =OnFailure==).  It does two things:
 
-1. =wall= message — appears on all open terminals/TTYs.
-2. =notify-send -u critical= — GNOME desktop notification (only while logged in).
+1. Writes a red banner to every PTY owned by =caocoa=, so the
+   message appears in GUI terminal emulators (GNOME Console, Emacs
+   eat/mistty, VS Code terminal, etc.).  Classic =wall(1)= was
+   replaced because it relies on utmp, and GUI terminals do not
+   register utmp entries.
+2. =notify-send -u critical= sends a GNOME desktop notification (only while logged in).
 
 To test the alert path:
 
@@ -96,4 +100,5 @@ To test the alert path:
 sudo systemctl start btrbk-home-failure-alert.service
 #+end_src
 
-You should see a wall broadcast and (if in GNOME) a critical notification.
+You should see a red message in open terminals and (if in GNOME) a
+critical notification.

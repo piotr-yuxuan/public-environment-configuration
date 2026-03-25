@@ -1,0 +1,53 @@
+/* Waybar stylesheet: minimal, readable, uses the system monospace font. */
+
+* {
+    font-family: "Iosevka Nerd Font Mono", monospace;
+    font-size: 13px;
+    min-height: 0;
+}
+
+window#waybar {
+    background-color: rgba(30, 30, 46, 0.9);
+    color: #cdd6f4;
+    border-bottom: 2px solid rgba(100, 114, 125, 0.5);
+}
+
+#workspaces button {
+    padding: 0 5px;
+    color: #cdd6f4;
+    border-radius: 5px;
+    margin: 2px;
+}
+
+#workspaces button.active {
+    background-color: rgba(100, 114, 125, 0.4);
+    color: #ffffff;
+}
+
+#workspaces button:hover {
+    background-color: rgba(100, 114, 125, 0.2);
+}
+
+#clock,
+#battery,
+#network,
+#pulseaudio,
+#tray {
+    padding: 0 10px;
+}
+
+#battery.warning {
+    color: #fab387;
+}
+
+#battery.critical {
+    color: #f38ba8;
+}
+
+#pulseaudio.muted {
+    color: #6c7086;
+}
+
+#tray > .passive {
+    -gtk-icon-effect: dim;
+}

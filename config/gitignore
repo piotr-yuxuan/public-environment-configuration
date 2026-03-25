@@ -1,5 +1,5 @@
 # =============================================================================
-# Global gitignore — managed by home-manager (programs.git.ignores).
+# Global gitignore managed by home-manager (programs.git.ignores).
 # Covers OS artefacts, editor temp files, and common build outputs.
 # =============================================================================
 
