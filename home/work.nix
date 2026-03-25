@@ -68,6 +68,13 @@
     ${lib.fileContents ../scripts/brew-bundle-activation.sh}
   '';
 
+  #  macOS desktop wallpaper
+
+  home.activation.setWallpaper = lib.hm.dag.entryAfter ["writeBoundary"] ''
+    WALLPAPER="${../img/wallpaper.jpg}"
+    ${lib.fileContents ../scripts/macos-set-wallpaper.sh}
+  '';
+
   #  Clear .hushlogin at login so the shell greeting runs once per session
 
   launchd.agents.clear-hushlogin = {

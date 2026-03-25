@@ -39,6 +39,7 @@
       # Clojure ecosystem
       unstable.babashka # fast Clojure scripting (no JVM startup)
       unstable.clj-kondo # Clojure linter / static analysis
+      unstable.leiningen # Clojure project automation & build tool
       unstable.neil # manage deps.edn aliases & deps
 
       # Language servers (eglot)

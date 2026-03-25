@@ -21,6 +21,7 @@ using it right away.
   - [[clojure (C40C04 only)][clojure (C40C04 only)]]
   - [[babashka][babashka]]
   - [[clj-kondo][clj-kondo]]
+  - [[leiningen][leiningen]]
   - [[neil][neil]]
   - [[Practicalli deps.edn][Practicalli deps.edn]]
 - [[Language servers (Eglot)][Language servers (Eglot)]]
@@ -214,6 +215,15 @@ Clojure linter / static analysis.
 #+begin_src sh
 clj-kondo --lint src/            # lint a directory
 clj-kondo --lint - <<< "(defn f [x] x x)"   # lint from stdin
+#+end_src
+
+** leiningen
+Clojure project automation and build tool.
+#+begin_src sh
+lein new app my-project          # scaffold a new Leiningen project
+lein repl                        # start a REPL
+lein test                        # run tests
+lein uberjar                     # build a standalone JAR
 #+end_src
 
 ** neil
