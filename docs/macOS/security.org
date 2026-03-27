@@ -1,8 +1,8 @@
-#+TITLE: Security posture (work)
+#+TITLE: Security posture (macOS)
 #+AUTHOR: caocoa
 #+STARTUP: overview
 
-Security hardening rationale and audit checklist for the work host
+Security hardening rationale and audit checklist for the macOS hosts
 (corporate macOS, aarch64-darwin, MDM managed).
 
 nix-darwin acts as a lightweight guest.  MDM controls FileVault, most
@@ -23,6 +23,16 @@ top of the MDM baseline.
 - [[Nix input staleness check][Nix input staleness check]]
 - [[Application sandboxing (TCC)][Application sandboxing (TCC)]]
 - [[Considerations for periodic audits][Considerations for periodic audits]]
+  - [[Flake inputs][Flake inputs]]
+  - [[Firewall status][Firewall status]]
+  - [[Listening ports][Listening ports]]
+  - [[FileVault status][FileVault status]]
+  - [[Gatekeeper status][Gatekeeper status]]
+  - [[ICMP redirect sysctl][ICMP redirect sysctl]]
+  - [[OpenBSM audit logs][OpenBSM audit logs]]
+  - [[Homebrew integrity][Homebrew integrity]]
+  - [[Nix store trust][Nix store trust]]
+  - [[TCC permissions][TCC permissions]]
 
 * Full disk encryption (FileVault)
 
@@ -34,11 +44,11 @@ FileVault is enforced by MDM.  nix-darwin does not manage it.
 
 =system.defaults.alf= configures the macOS Application Layer Firewall:
 
-| Setting                       | Value | Purpose                                  |
-|-------------------------------+-------+------------------------------------------|
-| =globalstate=                 |     1 | Firewall enabled                         |
-| =stealthenabled=              |     1 | Stealth mode: drop unsolicited ICMP      |
-| =allowdownloadsignedenabled=  |     0 | Block incoming for unsigned downloads    |
+| Setting                    | Value | Purpose                               |
+|----------------------------+-------+---------------------------------------|
+| =globalstate=                |     1 | Firewall enabled                      |
+| =stealthenabled=             |     1 | Stealth mode: drop unsolicited ICMP   |
+| =allowdownloadsignedenabled= |     0 | Block incoming for unsigned downloads |
 
 If MDM already manages the firewall, these settings are no-ops (MDM
 policy wins).

@@ -1,7 +1,7 @@
 # Home Manager base module (cross-platform).
 #
-# Imported by both C40C04 (NixOS) and work (standalone macOS).
-# Per-host overrides live in home/C40C04.nix and home/work.nix.
+# Imported by both C40C04 (NixOS) and macOS (standalone macOS).
+# Per-host overrides live in home/C40C04.nix and home/macOS.nix.
 #
 # RULE: Only settings that are picked up and applied on *both*
 #       NixOS and macOS belong here.  Platform-specific config
@@ -22,148 +22,143 @@
 
   #  Packages: cross-platform CLI tools (both hosts)
 
-  home.packages =
-    [
-      # Build toolchain
-      unstable.gcc
-      unstable.cmake
-      unstable.pkg-config
-      unstable.enchant # libenchant for jinx / spell compile-time dep
+  home.packages = [
+    # Build toolchain
+    unstable.gcc
+    unstable.cmake
+    unstable.pkg-config
+    unstable.enchant # libenchant for jinx / spell compile-time dep
 
-      # Languages & runtimes
-      unstable.python3
-      unstable.nodejs
-      unstable.go
-      unstable.rustup # provides cargo, rustc, rustfmt, rust-analyzer
+    # Languages & runtimes
+    unstable.python3
+    unstable.nodejs
+    unstable.go
+    unstable.rustup # provides cargo, rustc, rustfmt, rust-analyzer
 
-      # Clojure ecosystem
-      unstable.babashka # fast Clojure scripting (no JVM startup)
-      unstable.clj-kondo # Clojure linter / static analysis
-      unstable.leiningen # Clojure project automation & build tool
-      unstable.neil # manage deps.edn aliases & deps
+    # Clojure ecosystem
+    unstable.babashka # fast Clojure scripting (no JVM startup)
+    unstable.clj-kondo # Clojure linter / static analysis
+    unstable.leiningen # Clojure project automation & build tool
+    unstable.neil # manage deps.edn aliases & deps
 
-      # Language servers (eglot)
-      unstable.clojure-lsp
-      unstable.texlab # LaTeX language server
-      unstable.pyright
-      unstable.nodePackages.typescript-language-server
-      unstable.nodePackages.typescript
-      unstable.ltex-ls
-      unstable.jdt-language-server
-      unstable.bash-language-server
-      unstable.dockerfile-language-server
-      unstable.sqls
-      unstable.yaml-language-server
+    # Language servers (eglot)
+    unstable.clojure-lsp
+    unstable.texlab # LaTeX language server
+    unstable.pyright
+    unstable.nodePackages.typescript-language-server
+    unstable.nodePackages.typescript
+    unstable.ltex-ls
+    unstable.jdt-language-server
+    unstable.bash-language-server
+    unstable.dockerfile-language-server
+    unstable.sqls
+    unstable.yaml-language-server
 
-      # Formatters
-      unstable.alejandra # Nix formatter (opinionated)
-      unstable.black
-      unstable.isort
-      unstable.ruff
-      unstable.yamlfmt
-      unstable.shfmt
-      unstable.nodePackages.prettier
+    # Formatters
+    unstable.alejandra # Nix formatter (opinionated)
+    unstable.black
+    unstable.isort
+    unstable.ruff
+    unstable.yamlfmt
+    unstable.shfmt
+    unstable.nodePackages.prettier
 
-      # Linters
-      unstable.shellcheck
-      unstable.yamllint
+    # Linters
+    unstable.shellcheck
+    unstable.yamllint
 
-      # Search & navigation
-      unstable.ripgrep
-      unstable.tealdeer # fast tldr with simplified man pages
+    # Search & navigation
+    unstable.ripgrep
+    unstable.tealdeer # fast tldr with simplified man pages
 
-      # CLI utilities
-      unstable.fortune
-      unstable.macchina
-      unstable.jq
-      unstable.yq-go
-      unstable.curl
-      unstable.tokei
-      unstable.asciinema
-      unstable.bmon
-      unstable.coreutils
-      unstable.duckdb
-      unstable.enca
-      unstable.fx
-      unstable.qrencode
-      unstable.silver-searcher
-      unstable.tree
-      unstable.poppler-utils # pdftotext, pdfinfo, etc. (xpdf is CVE-marked)
-      unstable.yt-dlp
-      unstable.ffmpeg # media processing (also used by yt-dlp)
-      unstable.ispell
-      unstable.age # modern file encryption
-      unstable.graphviz
-      unstable.pandoc
-      unstable.inxi
-      unstable.lsof
+    # CLI utilities
+    unstable.fortune
+    unstable.macchina
+    unstable.jq
+    unstable.yq-go
+    unstable.curl
+    unstable.tokei
+    unstable.asciinema
+    unstable.bmon
+    unstable.coreutils
+    unstable.duckdb
+    unstable.enca
+    unstable.fx
+    unstable.qrencode
+    unstable.silver-searcher
+    unstable.tree
+    unstable.poppler-utils # pdftotext, pdfinfo, etc. (xpdf is CVE-marked)
+    unstable.yt-dlp
+    unstable.ffmpeg # media processing (also used by yt-dlp)
+    unstable.ispell
+    unstable.age # modern file encryption
+    unstable.graphviz
+    unstable.pandoc
+    unstable.inxi
+    unstable.lsof
 
-      # IaC / Cloud
-      unstable.awscli2
-      unstable.aws-vault # secure AWS credential management
-      unstable.granted # fast AWS role switching
-      unstable.ssm-session-manager-plugin
-      unstable.podman
-      unstable.sops
-      unstable.tenv
-      unstable.terraform-ls
-      unstable.terraform-lsp
-      unstable.terraform-landscape
+    # IaC / Cloud
+    unstable.awscli2
+    unstable.aws-vault # secure AWS credential management
+    unstable.granted # fast AWS role switching
+    unstable.ssm-session-manager-plugin
+    unstable.podman
+    unstable.sops
+    unstable.tenv
+    unstable.terraform-ls
+    unstable.terraform-lsp
+    unstable.terraform-landscape
 
-      # CloudFormation
-      pkgs.python3Packages.cfn-lint # CloudFormation template linter
-      pkgs.rain # CloudFormation deploy / diff CLI
+    # CloudFormation
+    pkgs.python3Packages.cfn-lint # CloudFormation template linter
+    pkgs.rain # CloudFormation deploy / diff CLI
 
-      # Load testing / monitoring
-      pkgs.k6 # modern load testing (scripted in JS)
-      pkgs.vegeta # HTTP load testing CLI
-      pkgs.hey # simple HTTP load generator
+    # Load testing / monitoring
+    pkgs.k6 # modern load testing (scripted in JS)
+    pkgs.vegeta # HTTP load testing CLI
+    pkgs.hey # simple HTTP load generator
 
-      # LaTeX
-      pkgs.texliveFull # full TeX Live (XeLaTeX, LuaLaTeX, latexmk, …)
-      pkgs.tectonic # modern self-contained TeX engine
+    # LaTeX
+    pkgs.texliveFull # full TeX Live (XeLaTeX, LuaLaTeX, latexmk, …)
+    pkgs.tectonic # modern self-contained TeX engine
 
-      # Profiling / flamegraphs
-      pkgs.visualvm # JVM monitoring & profiling GUI
-      pkgs.async-profiler # low-overhead JVM sampling profiler
-      pkgs.flamegraph # Brendan Gregg's FlameGraph scripts
+    # Profiling / flamegraphs
+    pkgs.visualvm # JVM monitoring & profiling GUI
+    pkgs.async-profiler # low-overhead JVM sampling profiler
+    pkgs.flamegraph # Brendan Gregg's FlameGraph scripts
 
-      # AI / ML
-      unstable.ollama
-      unstable.openai-whisper
+    # AI / ML
+    unstable.ollama
+    unstable.openai-whisper
 
-      # Build tools
-      unstable.meson
-      unstable.ninja
+    # Build tools
+    unstable.meson
+    unstable.ninja
 
-      # Email
-      unstable.mu
-      unstable.mu.mu4e # prebuilt mu4e elisp (added to load-path below)
-      unstable.isync # provides mbsync
+    # Email
+    unstable.mu
+    unstable.mu.mu4e # prebuilt mu4e elisp (added to load-path below)
+    unstable.isync # provides mbsync
 
-      # Spell & grammar
-      unstable.languagetool # grammar checker (EN, FR, PL, …)
-      unstable.python3Packages.grammalecte # French grammar checker
-      unstable.hunspell
-      unstable.hunspellDicts.en_GB-ise
-      unstable.hunspellDicts.en_US
-      unstable.hunspellDicts.fr-classique
-      unstable.hunspellDicts.pl_PL
-      unstable.hunspellDicts.es_ES
-      unstable.hunspellDicts.de_DE
-      unstable.aspell
-      unstable.aspellDicts.en
-      unstable.aspellDicts.fr
-      unstable.aspellDicts.pl
-      unstable.aspellDicts.la
-      unstable.aspellDicts.es
-      unstable.aspellDicts.de
-    ]
-    ++ (import ../fonts.nix {inherit unstable;});
-
-  #  Fonts
-
-  fonts.fontconfig.enable = true;
+    # Spell & grammar
+    unstable.languagetool # grammar checker (EN, FR, PL, …)
+    unstable.python3Packages.grammalecte # French grammar checker
+    unstable.hunspell
+    unstable.hunspellDicts.en_GB-ise
+    unstable.hunspellDicts.en_US
+    unstable.hunspellDicts.fr-classique
+    unstable.hunspellDicts.pl_PL
+    unstable.hunspellDicts.es_ES
+    unstable.hunspellDicts.de_DE
+    (unstable.callPackage ../packages/hunspell-dict-la.nix {})
+    unstable.aspell
+    unstable.aspellDicts.en
+    unstable.aspellDicts.fr
+    unstable.aspellDicts.pl
+    unstable.aspellDicts.la
+    unstable.aspellDicts.es
+    unstable.aspellDicts.de
+  ];
 
   #  Program modules: structured config via Home Manager
 
@@ -379,6 +374,7 @@
     "${unstable.hunspellDicts.pl_PL}/share/hunspell"
     "${unstable.hunspellDicts.es_ES}/share/hunspell"
     "${unstable.hunspellDicts.de_DE}/share/hunspell"
+    "${unstable.callPackage ../packages/hunspell-dict-la.nix {}}/share/hunspell"
   ];
 
   xdg.configFile."enchant/enchant.ordering".text = lib.fileContents ../config/enchant.ordering;

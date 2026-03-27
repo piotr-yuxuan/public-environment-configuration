@@ -1,6 +1,6 @@
 # Shared font packages, referenced by both:
 #   • home/base.nix  (home.packages, fontconfig on Linux + macOS)
-#   • hosts/work.nix (fonts.packages, macOS Core Text via /Library/Fonts)
+#   • hosts/macOS.nix (fonts.packages, macOS Core Text via /Library/Fonts)
 #
 # Usage:  import ../fonts.nix { inherit unstable; }
 {unstable}: [

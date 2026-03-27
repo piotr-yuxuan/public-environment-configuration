@@ -11,7 +11,7 @@ troubleshooting.
 cd ~/nixos && sudo nixos-rebuild switch --flake .#C40C04
 
 # macOS
-cd ~/nixos && darwin-rebuild switch --flake .#work
+cd ~/nixos && darwin-rebuild switch --flake .#macOS-arm64
 #+end_src
 
 * Update flake inputs
@@ -100,7 +100,7 @@ nix flake update
 # NixOS
 sudo nixos-rebuild switch --flake .#C40C04
 # macOS
-darwin-rebuild switch --flake .#work --impure
+darwin-rebuild switch --flake .#macOS-arm64 --impure
 #+end_src
 
 *Do not change =stateVersion=.*  =system.stateVersion= and
@@ -186,7 +186,7 @@ brew reinstall --cask <name> # force-reinstall a broken cask
 sudo nixos-rebuild build --flake .#C40C04
 
 # macOS: build only
-darwin-rebuild build --flake .#work
+darwin-rebuild build --flake .#macOS-arm64
 #+end_src
 
 * Diff before switching

@@ -1,37 +1,87 @@
-#+title: Getting started: macOS work machine (nix-darwin)
+#+title: Getting started on macOS
 #+author: piotr-yuxuan
 
-Full walkthrough for setting up a brand-new Apple Silicon macOS laptop
-with Nix, nix-darwin, Home Manager, and Homebrew.
+We target =aarch64-darwin= (Apple Silicon) and =x86_64-darwin= (Intel).
+We need admin privileges, Full Disk Access (in macOS security
+settings), and internet access.
 
-* Prerequisites
+- If setting up a VM and you want to use =scp= or =ssh=:
 
-- A brand-new (or freshly wiped) macOS machine (Apple Silicon; the flake
-  targets =aarch64-darwin=).
-- Admin privileges and internet access.
+#+begin_src zsh
+sudo systemsetup -setremotelogin on
+#+end_src
 
-* 1. Install Xcode command line tools
+- Homebrew could install it but the graphical downloader gives an
+  estimated time and a progress bar.
 
 #+begin_src zsh
 xcode-select --install
 #+end_src
 
-* 2. Install Nix
+- Install Nix, or Lix later if you want:
 
 #+begin_src zsh
 sh <(curl -L https://nixos.org/nix/install)
 #+end_src
 
-Open a *new terminal* when done.
-
-* 3. Install Homebrew
+- Install Homebrew
 
 #+begin_src zsh
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 eval "$(/opt/homebrew/bin/brew shellenv)"
 #+end_src
 
-** Why Homebrew alongside Nix?
+Open a *new terminal* when you reach this stage.
+
+- Clone the configuration
+
+#+begin_src zsh
+git clone --depth 1 https://github.com/piotr-yuxuan/public-environment-configuration.git ~/src/github.com/piotr-yuxuan/public-environment-configuration
+cd ~/src/github.com/piotr-yuxuan/public-environment-configuration
+#+end_src
+
+- Edit the username in =flake.nix= and git identity install
+  =home/macOS.nix=.
+
+- On the first run you need to install nix-darwin (pick the flake
+  output that matches your architecture):
+
+#+begin_src zsh
+# Apple Silicon
+sudo nix --extra-experimental-features "nix-command flakes" run nix-darwin -- switch --flake .#macOS-arm64
+# Intel
+sudo nix --extra-experimental-features "nix-command flakes" run nix-darwin -- switch --flake .#macOS-x86_64
+#+end_src
+
+- On subsequent rebuilds you may simply use:
+
+#+begin_src zsh
+# Apple Silicon
+sudo darwin-rebuild switch --flake .#macOS-arm64
+# Intel
+sudo darwin-rebuild switch --flake .#macOS-x86_64
+#+end_src
+
+- Set once zsh as login shell: (FIXME: is it needed?)
+
+#+begin_src zsh
+chsh -s /run/current-system/sw/bin/zsh
+#+end_src
+
+- Clone Emacs configuration:
+
+#+begin_src zsh
+git clone https://github.com/piotr-yuxuan/.emacs.d ~/src/github.com/piotr-yuxuan/.emacs.d
+ln -s ~/src/github.com/piotr-yuxuan/.emacs.d ~/.emacs.d
+#+end_src
+
+- Create or import GPG and SSH keys
+- Create =~/.zshenv.secrets= with tokens (e.g. =GITLAB_PERSONAL_ACCESS_TOKEN=)
+- Launch Emacs and let it install packages
+
+* Notes
+
+** Nix-managed Homebrew
 
 Some macOS GUI apps (Emacs.app via jimeh/emacs-builds, Firefox, Slack,
 VS Code, etc.) work more reliably as native =.app= bundles installed
@@ -42,65 +92,6 @@ The Home Manager activation script runs =brew bundle install= from
 =config/Brewfile= automatically on every =darwin-rebuild switch=, so
 both worlds stay in sync.
 
-* 4. Clone the configuration
-
-#+begin_src zsh
-git clone https://github.com/<your-user>/nixos.git ~/nixos
-cd ~/nixos
-#+end_src
-
-* 5. Edit your username
-
-The flake hardcodes the corporate username =example=. Verify yours:
-
-#+begin_src zsh
-whoami
-#+end_src
-
-If it differs, update these locations in =flake.nix=
-(=darwinConfigurations.work= → =home-manager= section):
-
-- =users.example= → =users.<your-username>=
-- =home.username= → ="<your-username>"=
-- =home.homeDirectory= → ="/Users/<your-username>"=
-
-Also update the git identity (name + email) in =home/work.nix=.
-
-* 6. Build and switch
-
-First build (nix-darwin is not yet installed):
-
-#+begin_src zsh
-nix run nix-darwin -- switch --flake .#work
-#+end_src
-
-All subsequent rebuilds:
-
-#+begin_src zsh
-darwin-rebuild switch --flake .#work
-#+end_src
-
 The Home Manager activation also runs =brew update && brew bundle
 install= from =config/Brewfile=, so Homebrew casks (Firefox, Emacs,
 VS Code, etc.) are installed automatically.
-
-* 7. Set Zsh as login shell
-
-#+begin_src zsh
-chsh -s /run/current-system/sw/bin/zsh
-#+end_src
-
-* 8. Clone the Emacs configuration
-
-#+begin_src zsh
-git clone https://github.com/<your-user>/emacs.d.git ~/.emacs.d
-#+end_src
-
-* Post-install checklist
-
-- [ ] Edit =home/work.nix=: set your real name and work email in the git
-  identity section
-- [ ] Import GPG keys: =gpg --import <key-file>=
-- [ ] Create =~/.zshenv.secrets= with tokens (e.g. =GITLAB_PERSONAL_ACCESS_TOKEN=)
-- [ ] Configure SSH keys in =~/.ssh/=
-- [ ] Launch Emacs and let it install packages

@@ -11,7 +11,7 @@ brew "texlive" # Complex meta-package; brew's texlive handles macOS
                # texlive.combined.*
 brew "zsh-autocomplete" # No equivalent home-manager module
 
-# Fonts are managed by nix-darwin (fonts.packages in hosts/work.nix),
+# Fonts are managed by nix-darwin (fonts.packages in hosts/macOS.nix),
 # which rsyncs them to /Library/Fonts/Nix Fonts/ and makes them visible to Core Text
 # and all macOS apps. No Homebrew casks needed.
 

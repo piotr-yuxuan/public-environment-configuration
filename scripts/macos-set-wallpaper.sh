@@ -1,5 +1,8 @@
-# macos-set-wallpaper.sh — sourced as a Home Manager activation script.
-# WALLPAPER is set by Nix interpolation in work.nix before this script runs.
+#!/usr/bin/env zsh
 
-$DRY_RUN_CMD /usr/bin/osascript -e \
-  'tell application "System Events" to tell every desktop to set picture to "'"$WALLPAPER"'"'
+# Sourced as a Home Manager activation script.
+
+UID_OF_USER=$(/usr/bin/id -u "$USER")
+$DRY_RUN_CMD /bin/launchctl asuser "$UID_OF_USER" \
+    /usr/bin/osascript -e \
+    'tell application "System Events" to tell every desktop to set picture to "'"$WALLPAPER"'"'

@@ -2,7 +2,7 @@
 #
 # Here nix-darwin acts as a lightweight guest, managing Nix, shells, default preferences without trying to conform the whole machine.
 #
-# Apply: darwin-rebuild switch --flake .#work --impure
+# Apply: darwin-rebuild switch --flake .#macOS-arm64 --impure  (or .#macOS-x86_64)
 {
   pkgs,
   lib,

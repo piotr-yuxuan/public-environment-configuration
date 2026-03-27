@@ -146,7 +146,7 @@
     # Home Manager (NixOS module)
     # Wires Home Manager for user caocoa on NixOS hosts.
     # Per-host HM overrides live in home/<host>.nix; shared config in
-    # home/base.nix uses the same pattern as the standalone work config.
+    # home/base.nix uses the same pattern as the standalone macOS config.
     homeManagerModule = {...}: {
       home-manager = {
         useGlobalPkgs = true; # reuse the system nixpkgs instance
@@ -199,29 +199,32 @@
       );
 
     # macOS machines (nix-darwin)
-    # Usage:  darwin-rebuild switch --flake .#work --impure
-    darwinConfigurations = {
-      work = let
+    # Usage: sudo darwin-rebuild switch --flake .#macOS-arm64 --impure
+    #    or: sudo darwin-rebuild switch --flake .#macOS-x86_64 --impure
+    darwinConfigurations = let
+      mkDarwinHost = system: let
         unstable-darwin = import nixpkgs-unstable {
-          system = "aarch64-darwin";
+          inherit system;
           config.allowUnfree = true;
         };
+
         # Read the current macOS username at eval time.
-        # Requires --impure so Nix can access environment variables.
-        # Falls back to "nobody" in pure mode so `nix flake check` can
-        # parse the structure without --impure.
         envUser = builtins.getEnv "USER";
+        # Require `--impure` so Nix can access environment variables.
+        # Used by Github Actions so it can validate the build for the
+        # runner user on macOS. Falls back to "nobody" or the actual
+        # user so no `impure`.
         darwinUser =
           if envUser != ""
           then envUser
-          else "nobody";
+          else "nobody"; # TODO Update to actual user.
         darwinHome = "/Users/${darwinUser}";
       in
         nix-darwin.lib.darwinSystem {
-          system = "aarch64-darwin";
+          inherit system;
           specialArgs = {unstable = unstable-darwin;};
           modules = [
-            ./hosts/work.nix
+            ./hosts/macOS.nix
 
             home-manager.darwinModules.home-manager
             {
@@ -242,13 +245,16 @@
                 };
 
                 users.${darwinUser} = {
-                  imports = [./home/base.nix ./home/work.nix];
+                  imports = [./home/base.nix ./home/macOS.nix];
                   home.stateVersion = "25.11";
                 };
               };
             }
           ];
         };
+    in {
+      macOS-arm64 = mkDarwinHost "aarch64-darwin";
+      macOS-x86_64 = mkDarwinHost "x86_64-darwin";
     };
   };
 }

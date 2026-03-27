@@ -3,7 +3,7 @@
 #+language: en
 
 Declarative system configuration for a *Framework 16 AMD 7040* (NixOS,
-=C40C04=) and a *macOS work laptop* (nix-darwin, =work=).
+=C40C04=) and a *macOS work laptop* (nix-darwin, =macOS-arm64=).
 
 Both machines share a common base of CLI tools, fonts, Zsh, Git, GPG,
 and Emacs tooling via Home Manager.  Platform-specific layers sit on
@@ -254,11 +254,11 @@ hardware-configuration.nix
 fonts.nix                 # Font packages shared across hosts
 hosts/
   C40C04.nix              # NixOS system config (GNOME, Secure Boot, …)
-  work.nix                # nix-darwin system config (macOS defaults, …)
+  macOS.nix                # nix-darwin system config (macOS defaults, …)
 home/
   base.nix                # Cross-platform Home Manager (Zsh, Git, GPG, …)
   C40C04.nix              # HM overrides for NixOS (Emacs, GUI apps, …)
-  work.nix                # HM overrides for macOS (Go, GitLab, Brewfile, …)
+  macOS.nix                # HM overrides for macOS (Go, GitLab, Brewfile, …)
 config/                   # Dotfiles and config snippets
   Brewfile                # Homebrew casks & formulae (macOS only)
   before.zshenv           # Sourced in ~/.zshenv
@@ -278,13 +278,15 @@ The flake defines two top-level outputs:
 - =nixosConfigurations.C40C04=: full NixOS system (kernel, GNOME, Secure
   Boot via Lanzaboote, LUKS via Disko, hardware tweaks from
   =nixos-hardware=). Home Manager is loaded as a NixOS module.
-- =darwinConfigurations.work=: nix-darwin system (macOS defaults, Nix
+- =darwinConfigurations.macOS-arm64= / =darwinConfigurations.macOS-x86_64=:
+  nix-darwin system (macOS defaults, Nix
   daemon, shell registration). Home Manager is loaded as a darwin
-  module.
+  module. Both are produced by a single =mkDarwinHost= helper
+  parameterised on the architecture.
 
 Both hosts import =home/base.nix= (cross-platform CLI tools, Zsh, Git,
 GPG, Starship, direnv, etc.) plus a host-specific overlay
-(=home/C40C04.nix= or =home/work.nix=).
+(=home/C40C04.nix= or =home/macOS.nix=).
 
 The flake pins two channels:
 - =nixpkgs= (stable =nixos-25.11=): system foundation.
@@ -333,7 +335,7 @@ Pick the guide that matches your situation:
 cd ~/nixos && sudo nixos-rebuild switch --flake .#C40C04
 
 # macOS
-cd ~/nixos && darwin-rebuild switch --flake .#work
+cd ~/nixos && darwin-rebuild switch --flake .#macOS-arm64
 #+end_src
 
 ** Update flake inputs
@@ -399,7 +401,7 @@ the latest generation fails to boot.
 sudo nixos-rebuild build --flake .#C40C04
 
 # macOS — build only
-darwin-rebuild build --flake .#work
+darwin-rebuild build --flake .#macOS-arm64
 #+end_src
 
 ** Diff before switching

@@ -1,21 +1,21 @@
-# Home Manager work Mac overrides (nix-darwin, aarch64-darwin).
+# Home Manager macOS overrides (nix-darwin).
 #
-# Imported alongside home/base.nix for the work user.
+# Imported alongside home/base.nix for the macOS user.
 # `unstable` is available via extraSpecialArgs.
 {
   pkgs,
   lib,
   ...
 }: {
-  #  Work-only packages
+  #  macOS only packages
 
   home.packages = [
-    # Languages & runtimes (work-specific)
+    # Languages & runtimes (macOS specific)
     pkgs.luarocks
     pkgs.pipenv
     pkgs.poetry
 
-    # Language servers (work-specific)
+    # Language servers (macOS specific)
     # texlab moved to home/base.nix (cross-platform)
 
     # VCS / GitOps
@@ -27,10 +27,10 @@
     pkgs.gnused
   ];
 
-  #  Git identity (work: fill in before first use)
+  #  Git identity (fill in before first use)
 
   programs.git.settings.user = {
-    # TODO: Replace with your real work name and email.
+    # TODO: Replace with your real name and email.
     name = lib.mkForce "example";
     email = lib.mkForce "example@example.com";
   };
@@ -53,13 +53,14 @@
     }";
   };
 
-  # Homebrew binary paths, prepended to PATH so brew-managed tools that
-  # have not yet been migrated to nix are found.
-  home.sessionPath = [
-    "/opt/homebrew/bin"
-    "/opt/homebrew/sbin"
-    "/opt/homebrew/opt/curl/bin"
-  ];
+  # Bootstrap Homebrew: probes the arm64 and Intel prefixes at shell startup
+  # so PATH, MANPATH, and INFOPATH are set correctly on either architecture.
+  programs.zsh.profileExtra = lib.fileContents ../config/brew-shellenv.zsh;
+
+  # Restore macOS-specific interactive shell features (COMBINING_CHARS,
+  # disable log builtin, Terminal.app hooks) that nix-darwin's generated
+  # /etc/zshrc omits.
+  programs.zsh.initContent = lib.fileContents ../config/macos-zshrc.zsh;
 
   #  Brewfile integration (imperative bridging for macOS GUI apps)
 

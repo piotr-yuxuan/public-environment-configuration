@@ -15,7 +15,14 @@ ignore private-bin
 # whitelist everything VS Code needs.
 whitelist ${HOME}/.config/Code
 whitelist ${HOME}/.vscode
+
 noblacklist ${HOME}/nixos
 whitelist ${HOME}/nixos
+
+noblacklist ${HOME}/OSX-KVM
+whitelist ${HOME}/OSX-KVM
+
+noblacklist ${HOME}/src
+whitelist ${HOME}/src
 
 include code.profile

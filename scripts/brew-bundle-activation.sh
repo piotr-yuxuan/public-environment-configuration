@@ -1,6 +1,8 @@
+#!/usr/bin/env zsh
+
 # brew-bundle-activation.sh — sourced as a home-manager activation script.
 # Runs on every `home-manager switch` on macOS.
-# BREWFILE is set by Nix interpolation in work.nix before this script runs.
+# BREWFILE is set by Nix interpolation in macOS.nix before this script runs.
 
 # Refresh the Homebrew formula/cask index before installing.
 # Equivalent to `apt update`; keeps formula metadata and available versions current.

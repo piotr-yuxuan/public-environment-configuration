@@ -72,7 +72,7 @@ using it right away.
 - [[LaTeX][LaTeX]]
   - [[texliveFull][texliveFull]]
   - [[tectonic][tectonic]]
-  - [[texlab (work only)][texlab (work only)]]
+  - [[texlab (macOS only)][texlab (macOS only)]]
   - [[texstudio (C40C04 only)][texstudio (C40C04 only)]]
 - [[Music & audio][Music & audio]]
   - [[picard][picard]]
@@ -130,6 +130,7 @@ using it right away.
   - [[night-theme-switcher (C40C04 only)][night-theme-switcher (C40C04 only)]]
   - [[clipboard-history (C40C04 only)][clipboard-history (C40C04 only)]]
   - [[auto-power-profile (C40C04 only)][auto-power-profile (C40C04 only)]]
+  - [[libreoffice (C40C04 only)][libreoffice (C40C04 only)]]
 - [[Virtualisation (C40C04 only)][Virtualisation (C40C04 only)]]
   - [[qemu_kvm][qemu_kvm]]
   - [[virt-manager][virt-manager]]
@@ -138,7 +139,7 @@ using it right away.
   - [[p7zip][p7zip]]
   - [[cdrtools][cdrtools]]
   - [[tesseract][tesseract]]
-- [[Work-only packages][Work-only packages]]
+- [[macOS only packages][macOS only packages]]
   - [[go][go]]
   - [[glab][glab]]
   - [[gitlab-runner][gitlab-runner]]
@@ -606,7 +607,7 @@ tectonic document.tex          # compile (fetches missing packages automatically
 tectonic -X build              # build a Tectonic.toml project
 #+end_src
 
-** texlab (work only)
+** texlab (macOS only)
 LaTeX language server.  Used by Eglot / VS Code for completion,
 diagnostics, and forward/inverse search.
 
@@ -723,10 +724,14 @@ Configuration lives in =~/.mbsyncrc=.
 * Spell & grammar
 
 ** hunspell
-Spell checker with dictionary support.
+Spell checker with dictionary support.  Installed dictionaries:
+en_GB, en_US, fr-classique, pl_PL, es_ES, de_DE, la (Latin, 130 000+
+words covering archaic, classical, medieval, ecclesiastical and New
+Latin).
 #+begin_src sh
 echo "speling errror" | hunspell -d en_US      # interactive check
 hunspell -l -d fr_FR document.txt              # list misspelled words
+hunspell -d la latin-text.txt                  # check Latin text
 #+end_src
 
 ** aspell
@@ -963,6 +968,19 @@ GNOME Shell extension that automatically switches between power saver,
 balanced, and performance power profiles based on battery state and
 AC/battery connection.
 
+** libreoffice (C40C04 only)
+Full office suite.  Hunspell dictionaries (en_GB, en_US, fr-classique,
+pl_PL, es_ES, de_DE) are picked up from =DICPATH=.  A LanguageTool
+HTTP server runs locally on port 47193; configure it in
+Tools > Options > Language Settings > LanguageTool Server with base
+URL =http://localhost:47193/v2=.  Run =scripts/libreoffice-setup.sh=
+to install the Grammalecte LibreOffice extension.
+#+begin_src sh
+soffice                                     # launch LibreOffice
+soffice --writer                             # launch Writer directly
+systemctl --user status languagetool         # check LanguageTool server
+#+end_src
+
 * Hyprland session (C40C04 only)
 
 The Hyprland tiling Wayland compositor runs as an alternative session
@@ -1089,7 +1107,7 @@ recognition.
 tesseract image.png output_text
 #+end_src
 
-* Work-only packages
+* macOS only packages
 
 ** go
 Go programming language.

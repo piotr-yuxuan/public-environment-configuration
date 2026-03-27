@@ -1,5 +1,5 @@
 #!/bin/sh
-# Post-activation hardening for the work (macOS) machine.
+# Post-activation hardening for macOS machines.
 # Called by nix-darwin's system.activationScripts.postActivation.
 # Runs as root during darwin-rebuild switch.
 

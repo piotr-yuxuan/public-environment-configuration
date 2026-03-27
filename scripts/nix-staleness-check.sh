@@ -1,5 +1,5 @@
 #!/bin/sh
-# Nix flake staleness check for the work (macOS) machine.
+# Nix flake staleness check for macOS machines.
 # Called weekly by launchd agent com.user.nix-staleness-check.
 # Warns via macOS notification if any flake input is older than 14 days.
 
