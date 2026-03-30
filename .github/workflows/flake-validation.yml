@@ -6,11 +6,15 @@ on:
   pull_request:
     branches: [master]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   check-flake:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
       - uses: cachix/install-nix-action@51f3067b56fe8ae331890c77d4e454f6d60615ff
         with:
           extra_nix_config: |
@@ -18,23 +22,35 @@ jobs:
       - name: nix flake check (no build)
         run: nix flake check --no-build
 
-  eval-darwin:
-    runs-on: macos-latest
+  eval:
+    needs: check-flake
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - config: macOS-arm64
+            runner: macos-latest
+            eval_expr: .#darwinConfigurations.macOS-arm64.system.drvPath
+          - config: macOS-x86_64
+            runner: macos-13
+            eval_expr: .#darwinConfigurations.macOS-x86_64.system.drvPath
+          #- config: C40C04
+          #  runner: ubuntu-latest
+          #  eval_expr: .#nixosConfigurations.C40C04.config.system.build.toplevel.drvPath
+    runs-on: ${{ matrix.runner }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
       - uses: cachix/install-nix-action@51f3067b56fe8ae331890c77d4e454f6d60615ff
         with:
           extra_nix_config: |
             experimental-features = nix-command flakes
-      - name: Evaluate darwinConfigurations.macOS-arm64
-        run: nix eval --impure '.#darwinConfigurations.macOS-arm64.system.drvPath' > /dev/null
-      - name: Evaluate darwinConfigurations.macOS-x86_64
-        run: nix eval --impure '.#darwinConfigurations.macOS-x86_64.system.drvPath' > /dev/null
+      - name: Evaluate ${{ matrix.config }}
+        run: nix eval --impure '${{ matrix.eval_expr }}' > /dev/null
 
   check-brewfile:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
       - name: Update Homebrew index
         run: brew update --quiet
       - name: Register custom taps
@@ -60,26 +76,36 @@ jobs:
                         /^cask / {gsub(/"/, "", $2); print "cask " $2}' config/Brewfile)
           exit $rc
 
-  build-darwin:
+  build:
+    needs: eval
     strategy:
+      fail-fast: true
       matrix:
         include:
           - config: macOS-arm64
             runner: macos-latest
+            build_expr: .#darwinConfigurations.macOS-arm64.system
+            activate: true
           - config: macOS-x86_64
             runner: macos-13
+            build_expr: .#darwinConfigurations.macOS-x86_64.system
+            activate: true
+          #- config: C40C04
+          #  runner: ubuntu-latest
+          #  build_expr: .#nixosConfigurations.C40C04.config.system.build.toplevel
+          #  activate: false
     runs-on: ${{ matrix.runner }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
       - uses: cachix/install-nix-action@51f3067b56fe8ae331890c77d4e454f6d60615ff
         with:
           extra_nix_config: |
             experimental-features = nix-command flakes
       - uses: DeterminateSystems/magic-nix-cache-action@565684385bcd71bad329742eefe8d12f2e765b39
-      - name: Build darwinConfigurations.${{ matrix.config }}
-        run: nix build --impure '.#darwinConfigurations.${{ matrix.config }}.system'
+      - name: Build ${{ matrix.config }}
+        run: nix build --impure '${{ matrix.build_expr }}'
       - name: Dry-activate (validate activation scripts)
-        if: always()
+        if: always() && matrix.activate
         run: |
           if [[ -L ./result ]]; then
             ./result/activate --dry-run 2>&1 || true
