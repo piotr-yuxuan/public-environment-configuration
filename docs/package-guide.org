@@ -146,6 +146,7 @@ using it right away.
   - [[graphviz][graphviz]]
   - [[pandoc][pandoc]]
   - [[ghostty (macOS only)][ghostty (macOS only)]]
+  - [[duti (macOS only)][duti (macOS only)]]
 
 * Build toolchain
 
@@ -1155,4 +1156,16 @@ by Home Manager (=home/macOS.nix=).
 ghostty
 # Pass a command directly.
 ghostty -e tmux new-session
+#+end_src
+
+** duti (macOS only)
+Sets default applications for UTIs and URL schemes via the LaunchServices API.
+Invoked automatically during =home-manager switch= (=home.activation.defaultApps=
+in =home/macOS.nix=) using =scripts/set-macos-defaults.sh=.
+#+begin_src sh
+# Show current handler for a UTI or scheme.
+duti -x public.html
+duti -x http
+# Set a default manually (app must be installed).
+duti -s org.gnu.Emacs public.json all
 #+end_src

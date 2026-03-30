@@ -218,14 +218,14 @@
       # 75/76 = Move left/right a Space (Ctrl-Left / Ctrl-Right)
       # 79/80 = Switch to Desktop 1 / 2
       AppleSymbolicHotKeys = {
-        "32"  = { enabled = false; };
-        "34"  = { enabled = false; };
-        "75"  = { enabled = false; };
-        "76"  = { enabled = false; };
-        "79"  = { enabled = false; };
-        "80"  = { enabled = false; };
-        "81"  = { enabled = false; };
-        "82"  = { enabled = false; };
+        "32" = {enabled = false;};
+        "34" = {enabled = false;};
+        "75" = {enabled = false;};
+        "76" = {enabled = false;};
+        "79" = {enabled = false;};
+        "80" = {enabled = false;};
+        "81" = {enabled = false;};
+        "82" = {enabled = false;};
       };
     };
 

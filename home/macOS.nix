@@ -5,18 +5,10 @@
 {
   pkgs,
   lib,
+  unstable,
   ...
 }: let
-  filterAvailable = builtins.filter (p:
-    let
-      tried = builtins.tryEval (builtins.seq p.outPath p);
-      nameEval = builtins.tryEval (p.pname or p.name or "unknown");
-      name = if nameEval.success then nameEval.value else "unknown";
-    in
-      if tried.success
-      then true
-      else builtins.trace "filterAvailable: skipping unavailable package: ${name}" false
-  );
+  inherit (import ./lib.nix) filterAvailable;
 in {
   #  macOS only packages
 
@@ -36,6 +28,9 @@ in {
     # Text / docs
     pkgs.gnugrep
     pkgs.gnused
+
+    # Default-app management (sets UTI/MIME handlers via LaunchServices)
+    unstable.duti
   ];
 
   #  Git identity (fill in before first use)
@@ -80,6 +75,13 @@ in {
     ${lib.fileContents ../scripts/brew-bundle-activation.sh}
   '';
 
+  #  Default applications (UTI and URL-scheme handlers via duti)
+
+  home.activation.defaultApps = lib.hm.dag.entryAfter ["writeBoundary"] ''
+    DUTI_BIN="${unstable.duti}/bin/duti"
+    ${lib.fileContents ../scripts/set-macos-defaults.sh}
+  '';
+
   #  macOS desktop wallpaper
 
   home.activation.setWallpaper = lib.hm.dag.entryAfter ["writeBoundary"] ''
@@ -122,6 +124,30 @@ in {
           Minute = 0;
         }
       ];
+      StandardErrorPath = "/dev/null";
+      StandardOutPath = "/dev/null";
+    };
+  };
+
+  #  Start NoTunes and Rectangle at login
+
+  launchd.agents.notunes = {
+    enable = true;
+    config = {
+      Label = "com.user.notunes";
+      ProgramArguments = ["/usr/bin/open" "-a" "NoTunes"];
+      RunAtLoad = true;
+      StandardErrorPath = "/dev/null";
+      StandardOutPath = "/dev/null";
+    };
+  };
+
+  launchd.agents.rectangle = {
+    enable = true;
+    config = {
+      Label = "com.user.rectangle";
+      ProgramArguments = ["/usr/bin/open" "-a" "Rectangle"];
+      RunAtLoad = true;
       StandardErrorPath = "/dev/null";
       StandardOutPath = "/dev/null";
     };
