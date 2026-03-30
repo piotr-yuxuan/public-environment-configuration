@@ -146,5 +146,3 @@ chflags_log() { cat "$tmpdir/.chflags-calls" 2>/dev/null || true; }
     '
     [[ -z $(chflags_log) ]]
 }
-    [[ -z $(chflags_log) ]]
-}
