@@ -281,82 +281,14 @@ find ~ -name '*.hm-backup' -ls
 find ~ -name '*.hm-backup' -delete
 #+end_src
 
-* Hyprland session (C40C04)
-
-** Switching sessions at login
-
-At the GDM login screen, click the gear icon (bottom right of the
-password field) and select *Hyprland* instead of *GNOME*.  On the next
-login GDM remembers the last chosen session.
-
-To switch back to GNOME, pick *GNOME* from the same gear menu.
-
-** Key bindings cheat sheet
-
-| Key                 | Action                        |
-|---------------------+-------------------------------|
-| =Super+Return=      | Open foot terminal            |
-| =Super+D=           | Application launcher (fuzzel) |
-| =Super+Q=           | Close window                  |
-| =Super+F=           | Toggle fullscreen             |
-| =Super+V=           | Toggle floating               |
-| =Super+L=           | Lock screen (hyprlock)        |
-| =Super+E=           | File manager (Nautilus)       |
-| =Super+Shift+V=     | Clipboard history             |
-| =Super+.=           | Emoji picker (bemoji)         |
-| =Print=             | Screenshot region to clipboard|
-| =Super+Print=       | Screenshot full screen        |
-| =Super+1= to =0=   | Switch workspace              |
-| =Super+Shift+1..0=  | Move window to workspace      |
-| =Super+Arrow=       | Move focus                    |
-| =Super+M=           | Exit Hyprland                 |
-
-Volume (=XF86Audio*=) and brightness (=XF86MonBrightness*=) hardware
-keys work as expected.
-
-** Rolling back to GNOME
-
-GNOME is untouched by the Hyprland integration.  To return to GNOME,
-simply select it at the GDM session picker.  To fully remove Hyprland,
-revert the changes in =hosts/C40C04.nix= and =home/C40C04.nix=, then
-rebuild.
-
-** Test VM
-
-Build and run a QEMU VM that mirrors the full C40C04 config (Hyprland
-uses software rendering inside the VM):
-
-#+begin_src zsh
-cd ~/nixos
-nixos-rebuild build-vm --flake .#C40C04
-./result/bin/run-C40C04-vm
-#+end_src
-
-Log in as =caocoa= with password =test=.  Pick the Hyprland session at
-the GDM session picker.
-
-The VM shares the complete host configuration so changes to the
-Hyprland setup can be previewed before deploying to bare metal.  Edit,
-rebuild the VM, and relaunch to iterate.
-
-*** Limitations
-
-Hyprland runs with software rendering (=WLR_RENDERER_ALLOW_SOFTWARE=1=)
-inside the VM.  Animations may be sluggish.  Hardware cursors are
-disabled (=WLR_NO_HARDWARE_CURSORS=1=).  GPU intensive features work
-correctly only on bare metal.
-
-If HM refuses to proceed entirely, remove the offending file manually
-and re-run the switch.
-
-** Secure Boot: "not in Setup mode"
+* Secure Boot: "not in Setup mode"
 
 1. Reboot into UEFI firmware (*F2*).
 2. Clear/reset the Secure Boot keys → puts firmware in "Setup Mode".
 3. Save and reboot; Lanzaboote auto-enrols its keys.
 4. Enter UEFI again and *enable Secure Boot*.
 
-** Nix store disk space
+* Nix store disk space
 
 #+begin_src zsh
 sudo btrfs filesystem usage /
@@ -364,7 +296,7 @@ sudo nix-collect-garbage --delete-older-than 7d
 sudo nix store optimise
 #+end_src
 
-*** Btrfs compression ratio
+** Btrfs compression ratio
 
 The Btrfs subvolumes use =compress=zstd=.  To see the actual
 compression ratio:
@@ -376,7 +308,7 @@ sudo compsize /
 This shows how much physical space each subvolume occupies versus its
 logical size.
 
-** Password change (NixOS)
+* Password change (NixOS)
 
 =passwd= is a no-op (=mutableUsers = false=).  Change the hashed
 password file and rebuild:
@@ -387,13 +319,13 @@ echo "new-password" | mkpasswd -m sha-512 -s \
 sudo nixos-rebuild switch --flake .#C40C04
 #+end_src
 
-** Fonts not showing up
+* Fonts not showing up
 
 #+begin_src zsh
 fc-list | grep -i iosevka
 #+end_src
 
-*** Platform-specific font troubleshooting
+** Platform-specific font troubleshooting
 
 *NixOS*: Fonts are installed via Home Manager (=home.packages=) and
 made available through fontconfig.  Rebuild and *log out / log in*
@@ -407,7 +339,7 @@ font still doesn't appear, try restarting the app or running:
 sudo atsutil databases -remove  # reset font caches
 #+end_src
 
-** Secrets file
+* Secrets file
 
 Tokens are loaded from =~/.zshenv.secrets= (sourced in every Zsh
 session).  This file is *gitignored*, so create it manually:

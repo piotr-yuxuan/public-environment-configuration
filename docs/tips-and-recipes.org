@@ -192,18 +192,134 @@ Manager takes care of this. On macOS with Homebrew: =source $(brew
 
 https://github.com/junegunn/fzf
 
+Setup is fully declarative: =programs.fzf= in =home/base.nix= enables the
+tool, wires the zsh integration, and configures =fd= as the default
+file-listing backend.  No manual sourcing is needed.
+
+** Prompt key bindings
+
+- =C-t= :: Paste selected file(s) onto the command line.  Preview pane
+  shows the file content via =bat= (toggle with =C-/=).
+- =C-r= :: Fuzzy-search shell history; press =C-r= again to switch to
+  chronological order.
+- =M-c= :: =cd= into a selected subdirectory.  Preview pane shows an =eza=
+  tree of the directory (toggle with =C-/=).
+
+** Inside the popup
+
+| Key      | Action                          |
+|----------+---------------------------------|
+| =C-a=    | Toggle-select all visible items |
+| =C-/=    | Show / hide preview pane        |
+| =C-u=    | Scroll preview half-page up     |
+| =C-d=    | Scroll preview half-page down   |
+| =Alt-↑=  | Jump to top of preview          |
+| =Alt-↓=  | Jump to bottom of preview       |
+| =Tab=    | Mark / unmark one item          |
+
+** Worked examples
+
+Interactively pick a file and open it in your =EDITOR=:
 #+begin_src zsh
-[ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
+$EDITOR $(fzf)
 #+end_src
 
-Key bindings:
-- =C-t= paste selected files/directories onto the command line
-- =C-r= paste selected command from history (=C-r= again for chronological
-  order)
-- =M-c= cd into selected directory
+Kill one or more processes (=Tab= to multi-select, =Enter= to kill):
+#+begin_src zsh
+kill -9 $(ps aux | fzf --multi | awk '{print $2}')
+#+end_src
 
-On both platforms, =programs.fzf.enable = true= in Home Manager sets
-this up automatically.
+Check out a git branch:
+#+begin_src zsh
+git checkout $(git branch -a | fzf)
+#+end_src
+
+Fuzzy-grep then open the match at the right line (relies on =bat= preview
+showing the highlighted line before you commit):
+#+begin_src zsh
+rg --line-number '' \
+  | fzf --delimiter ':' --nth 1,3.. \
+        --preview 'bat --color=always --highlight-line {2} {1}' \
+  | awk -F: '{print "+"$2, $1}' \
+  | xargs $EDITOR
+#+end_src
+
+Copy a selected path to the Wayland clipboard:
+#+begin_src zsh
+fzf | wl-copy
+#+end_src
+
+* Scrollback, text selection, and prompt navigation
+
+Two orthogonal operations:
+1. *Prompt jumping*: move up and down through previous prompts to scan
+   output without scrolling manually.
+2. *Keyboard text selection*: place the cursor anywhere in the scrollback,
+   select a region, and copy it without touching the mouse.
+
+** Prompt jumping via OSC 133 (already configured)
+
+=config/after.zshrc= emits OSC 133 shell-integration sequences on every
+prompt and command boundary.  Terminals that understand these marks expose
+keyboard shortcuts for prompt navigation with no extra tooling:
+
+| Terminal                 | Previous prompt    | Next prompt        |
+|--------------------------+--------------------+--------------------|
+| Ghostty                  | =Ctrl+Shift+Up=    | =Ctrl+Shift+Down=  |
+| GNOME Console (VTE)      | =Ctrl+Shift+Up=    | =Ctrl+Shift+Down=  |
+| iTerm2                   | =Cmd+Up=           | =Cmd+Down=         |
+| Terminal.app (macOS 12+) | =Cmd+Up=           | =Cmd+Down=         |
+| tmux (prefix = =C-b=)    | =C-b Up=           | =C-b Down=         |
+| eat (Emacs)              | =M-x eat-previous-shell-prompt= | =M-x eat-next-shell-prompt= |
+| mistty (Emacs)           | =M-x mistty-goto-previous-output= | =M-x mistty-goto-next-output= |
+
+** Keyboard text selection: tmux copy mode
+
+=programs.tmux= in =home/base.nix= configures vi-mode copy that works
+identically in Ghostty, GNOME Console, Terminal.app, and any other terminal
+that can run tmux.  The same OSC 133 marks drive prompt navigation here too.
+
+Enter and exit copy mode:
+#+begin_src sh
+C-b [          # enter copy mode (vi navigation)
+q              # exit copy mode
+#+end_src
+
+Navigate (standard vim motions all work inside copy mode):
+#+begin_src sh
+h j k l        # character movement
+w b            # word forward / backward
+/ ?            # search forward / backward
+n N            # next / previous search match
+g G            # top / bottom of scrollback
+{ }            # previous / next shell prompt (OSC 133 marks)
+#+end_src
+
+Select and copy:
+#+begin_src sh
+v              # characterwise selection
+V              # linewise selection
+C-v            # rectangular (block) selection
+y              # copy to system clipboard and exit copy mode
+#+end_src
+
+Paste:
+#+begin_src sh
+C-b ]          # paste most recent tmux buffer at the cursor
+#+end_src
+
+** Text selection in Emacs terminals
+
+Inside =eat= and =mistty=, tmux is not needed: Emacs's own region and yank
+ring cover the same use case and are already available.
+
+- In =eat=: invoke =M-x eat-emacs-mode= to suspend char mode and restore
+  standard Emacs key handling; then select with =C-SPC= plus movement keys
+  and copy with =M-w= (or kill with =C-w=).  Return to char mode with
+  =M-x eat-char-mode=.
+- In =mistty=: command output zones are frozen, read-only Emacs buffer text;
+  =C-SPC= plus any movement key selects a region and =M-w= copies it.
+  No mode switching is needed.
 
 * Feedback sounds                                                   :macos:
 

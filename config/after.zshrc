@@ -24,9 +24,6 @@ zstyle ':completion:*:descriptions' format '%F{green}-- %d --%f'
 zstyle ':completion:*' use-cache on
 zstyle ':completion:*' cache-path "$HOME/.zcompcache"
 
-# fzf keybindings
-export FZF_DEFAULT_OPTS="--multi"
-source <(fzf --zsh)
 
 # VSCode integrated terminal shell integration
 [[ "$TERM_PROGRAM" == 'vscode' ]] && \

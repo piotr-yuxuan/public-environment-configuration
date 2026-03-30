@@ -79,3 +79,12 @@ jobs:
           else
             echo "Skipped: no build result available"
           fi
+
+  test-shellscripts:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      - name: Install bats-core (macOS)
+        run: brew install bats-core
+      - name: Run tests (macOS)
+        run: bats --tap tests/home-layout.bats tests/macOS

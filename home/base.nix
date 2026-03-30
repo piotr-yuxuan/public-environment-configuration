@@ -69,8 +69,12 @@ in {
     unstable.shellcheck
     unstable.yamllint
 
+    # Testing
+    unstable.bats # shell test framework (tests/ directory)
+
     # Search & navigation
     unstable.ripgrep
+    unstable.fd # user-friendly find replacement (also drives fzf)
     unstable.tealdeer # fast tldr with simplified man pages
 
     # CLI utilities
@@ -286,7 +290,37 @@ in {
   programs.fzf = {
     enable = true;
     enableZshIntegration = true;
-    defaultOptions = ["--multi" "--height=40%" "--layout=reverse"];
+    # fd respects .gitignore, follows symlinks, and shows hidden files.
+    defaultCommand = "fd --type f --hidden --follow --exclude .git";
+    fileWidgetCommand = "fd --type f --hidden --follow --exclude .git";
+    changeDirWidgetCommand = "fd --type d --hidden --follow --exclude .git";
+    defaultOptions = [
+      "--multi"
+      "--height=50%"
+      "--layout=reverse"
+      "--border=rounded"
+      "--info=inline"
+      "--bind=ctrl-a:toggle-all"
+      "--bind=ctrl-/:toggle-preview"
+      "--bind=ctrl-u:preview-half-page-up"
+      "--bind=ctrl-d:preview-half-page-down"
+      "--bind=alt-up:preview-top"
+      "--bind=alt-down:preview-bottom"
+    ];
+    fileWidgetOptions = [
+      "--preview='bat --color=always --style=numbers,changes --line-range=:300 {}'"
+      "--preview-window=right:55%:wrap:hidden"
+    ];
+    changeDirWidgetOptions = [
+      "--preview='eza --tree --color=always --icons=auto --level=3 {}'"
+      "--preview-window=right:45%:hidden"
+    ];
+    historyWidgetOptions = [
+      "--sort"
+      "--exact"
+      "--preview='echo {}'"
+      "--preview-window=down:3:wrap:hidden"
+    ];
   };
 
   # Zoxide
@@ -302,6 +336,18 @@ in {
     icons = "auto";
     git = true;
     extraOptions = ["--group-directories-first"];
+  };
+
+  # Tmux (terminal multiplexer; universal scrollback and copy mode)
+  programs.tmux = {
+    enable = true;
+    keyMode = "vi";
+    mouse = true;
+    terminal = "tmux-256color";
+    historyLimit = 50000;
+    escapeTime = 10; # ms; keep low so Emacs M-... sequences are fast
+    baseIndex = 1;
+    extraConfig = lib.fileContents ../config/tmux.conf;
   };
 
   # Direnv
@@ -382,6 +428,18 @@ in {
   xdg.configFile."enchant/enchant.ordering".text = lib.fileContents ../config/enchant.ordering;
 
   home.file.".aspell.conf".text = lib.fileContents ../config/aspell.conf;
+
+  #  HOME directory layout (symlinks + working directories)
+  #
+  # Creates short aliases (img, net, pvt, snd, dist, …) pointing at
+  # the standard user directories, and plain working directories (bin/,
+  # man/, pkg/, src/).  See readme.org §Organisation of $HOME for the
+  # full rationale.  Platform-specific additions (mov) are in the
+  # host-specific Home Manager modules.
+
+  home.activation.homeLayout = lib.hm.dag.entryAfter ["writeBoundary"] ''
+    ${lib.fileContents ../scripts/home-layout.sh}
+  '';
 
   # SSH
   programs.ssh = {

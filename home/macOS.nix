@@ -158,4 +158,15 @@ in {
   home.file.".config/ghostty/config".text =
     (lib.fileContents ../config/ghostty/config)
     + "\n# Platform\nfont-size = 22\nshell-integration = detect\n";
+
+  #  macOS-specific HOME layout (mov -> Movies, hide default folders)
+  #
+  # Creates the mov alias pointing at ~/Movies and applies the
+  # UF_HIDDEN flag (chflags hidden) to the default macOS folders so
+  # that Finder omits them when browsing $HOME.  The folders remain
+  # fully functional for all applications.
+
+  home.activation.homeLayoutMacOS = lib.hm.dag.entryAfter ["writeBoundary"] ''
+    ${lib.fileContents ../scripts/home-layout-macOS.sh}
+  '';
 }
