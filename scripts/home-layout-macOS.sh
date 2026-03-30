@@ -12,5 +12,7 @@
 # Finder to omit the entry from its directory listing; the folder
 # itself continues to work normally for all applications.
 for d in Desktop Documents Downloads Movies Music Pictures Public; do
-    [[ -d $HOME/$d ]] && $DRY_RUN_CMD chflags hidden "$HOME/$d"
+    if [[ -d $HOME/$d ]]; then
+        $DRY_RUN_CMD chflags hidden "$HOME/$d"
+    fi
 done
