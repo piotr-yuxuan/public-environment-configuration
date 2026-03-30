@@ -129,5 +129,7 @@ in {
 
   #  Ghostty terminal emulator config
 
-  home.file.".config/ghostty/config".text = lib.fileContents ../config/ghostty/config;
+  home.file.".config/ghostty/config".text =
+    (lib.fileContents ../config/ghostty/config)
+    + "\n# Platform\nfont-size = 22\nshell-integration = detect\n";
 }
