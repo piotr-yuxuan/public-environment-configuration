@@ -217,7 +217,7 @@
         darwinUser =
           if envUser != ""
           then envUser
-          else "nobody"; # TODO Update to actual user.
+          else "example"; # TODO Update to actual user.
         darwinHome = "/Users/${darwinUser}";
       in
         nix-darwin.lib.darwinSystem {

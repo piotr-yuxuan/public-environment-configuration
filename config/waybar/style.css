@@ -1,7 +1,7 @@
 /* Waybar stylesheet: minimal, readable, uses the system monospace font. */
 
 * {
-    font-family: "Iosevka Nerd Font Mono", monospace;
+    font-family: "IosevkaTerm Nerd Font Mono", monospace;
     font-size: 13px;
     min-height: 0;
 }

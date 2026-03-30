@@ -6,10 +6,21 @@
   pkgs,
   lib,
   ...
-}: {
+}: let
+  filterAvailable = builtins.filter (p:
+    let
+      tried = builtins.tryEval (builtins.seq p.outPath p);
+      nameEval = builtins.tryEval (p.pname or p.name or "unknown");
+      name = if nameEval.success then nameEval.value else "unknown";
+    in
+      if tried.success
+      then true
+      else builtins.trace "filterAvailable: skipping unavailable package: ${name}" false
+  );
+in {
   #  macOS only packages
 
-  home.packages = [
+  home.packages = filterAvailable [
     # Languages & runtimes (macOS specific)
     pkgs.luarocks
     pkgs.pipenv
@@ -115,4 +126,8 @@
       StandardOutPath = "/dev/null";
     };
   };
+
+  #  Ghostty terminal emulator config
+
+  home.file.".config/ghostty/config".text = lib.fileContents ../config/ghostty/config;
 }

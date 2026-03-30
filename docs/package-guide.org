@@ -145,6 +145,7 @@ using it right away.
   - [[gitlab-runner][gitlab-runner]]
   - [[graphviz][graphviz]]
   - [[pandoc][pandoc]]
+  - [[ghostty (macOS only)][ghostty (macOS only)]]
 
 * Build toolchain
 
@@ -1143,4 +1144,15 @@ Universal document converter.
 pandoc README.md -o README.pdf
 pandoc -f org -t docx notes.org -o notes.docx
 pandoc --list-input-formats
+#+end_src
+
+** ghostty (macOS only)
+GPU-accelerated terminal emulator with native macOS integration.
+Installed via Homebrew cask; config is symlinked from =config/ghostty/config=
+by Home Manager (=home/macOS.nix=).
+#+begin_src sh
+# Open a new window.
+ghostty
+# Pass a command directly.
+ghostty -e tmux new-session
 #+end_src

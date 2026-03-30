@@ -66,6 +66,26 @@
     NSAutomaticPeriodSubstitutionEnabled = false;
     NSAutomaticQuoteSubstitutionEnabled = false;
     NSAutomaticSpellingCorrectionEnabled = false;
+
+    # Expand save and print dialogs by default.
+    NSNavPanelExpandedStateForSaveMode = true;
+    NSNavPanelExpandedStateForSaveMode2 = true;
+    PMPrintingExpandedStateForPrint = true;
+    PMPrintingExpandedStateForPrint2 = true;
+
+    # Save to disk, not iCloud, by default.
+    NSDocumentSaveNewDocumentsToCloud = false;
+
+    # Metric units.
+    AppleMeasurementUnits = "Centimeters";
+    AppleMetricUnits = 1;
+    AppleTemperatureUnit = "Celsius";
+
+    # Medium sidebar icon size (1=small, 2=medium, 3=large).
+    NSTableViewDefaultSizeMode = 2;
+
+    # Enable subpixel font rendering on non-Apple displays.
+    AppleFontSmoothing = 2;
   };
 
   # Trackpad
@@ -88,6 +108,14 @@
     # Magnification on hover.
     magnification = true;
     largesize = 128;
+    tilesize = 48; # base icon size
+
+    # Minimise into the app icon, not a separate tile.
+    minimize-to-application = true;
+    mineffect = "scale"; # faster than "genie"
+
+    # Group windows by app in Mission Control (Exposé).
+    expose-group-apps = true;
 
     # Pin only Emacs; remove every other persistent app.
     persistent-apps = ["/Applications/Emacs.app"];
@@ -110,14 +138,37 @@
   # Battery
   system.defaults.controlcenter.BatteryShowPercentage = true;
 
+  # Screenshots
+  system.defaults.screencapture = {
+    location = "~/Screenshots";
+    type = "png";
+    disable-shadow = true; # cleaner window captures
+  };
+
+  # Disable "Are you sure you want to open this application?" quarantine dialog.
+  system.defaults.LaunchServices.LSQuarantine = false;
+
+  # Reduce entrypoints for Spaces.
+  system.defaults.spaces.spans-displays = false;
+
+  # Login window
+  system.defaults.loginwindow = {
+    GuestEnabled = false;
+    DisableConsoleAccess = true;
+    # Show login/password fields (not user avatars).
+    SHOWFULLNAME = true;
+  };
+
   # Finder
   system.defaults.finder = {
     AppleShowAllExtensions = true;
     AppleShowAllFiles = true; # show hidden files
     FXEnableExtensionChangeWarning = false;
     FXDefaultSearchScope = "SCcf"; # search current folder by default
+    FXPreferredViewStyle = "Nlsv"; # default to list view
     ShowPathbar = true;
     ShowStatusBar = true;
+    _FXSortFoldersFirst = true; # folders on top in all views
   };
 
   # Custom preferences (no first-class nix-darwin option)
@@ -136,6 +187,7 @@
       ShowRecentTags = false;
       SidebarShowingSignedIntoiCloud = false;
       SidebarShowingiCloudDesktop = false;
+      FXArrangeGroupViewBy = "Name";
     };
 
     # Hide Bonjour computers in Finder sidebar
@@ -147,6 +199,79 @@
     "com.apple.desktopservices" = {
       DSDontWriteNetworkStores = true;
       DSDontWriteUSBStores = true;
+    };
+
+    # Disable desktop widgets (removes the Photos widget and all others).
+    "com.apple.WindowManager" = {
+      EnableStandardClickToShowDesktop = false;
+      StandardHideWidgets = true;
+    };
+
+    # Disable Tip notifications.
+    "com.apple.tipsd" = {
+      allowTips = false;
+    };
+
+    # Suppress Spaces / Mission Control keyboard & trackpad triggers.
+    "com.apple.symbolichotkeys" = {
+      # 32/34 = Mission Control (Ctrl-Up / Ctrl-Down)
+      # 75/76 = Move left/right a Space (Ctrl-Left / Ctrl-Right)
+      # 79/80 = Switch to Desktop 1 / 2
+      AppleSymbolicHotKeys = {
+        "32"  = { enabled = false; };
+        "34"  = { enabled = false; };
+        "75"  = { enabled = false; };
+        "76"  = { enabled = false; };
+        "79"  = { enabled = false; };
+        "80"  = { enabled = false; };
+        "81"  = { enabled = false; };
+        "82"  = { enabled = false; };
+      };
+    };
+
+    # AirDrop: contacts only.
+    # Options: 0 = Off, 1 = Contacts Only, 2 = Everyone.
+    "com.apple.sharingd" = {
+      DiscoverableMode = "Contacts Only";
+    };
+
+    # Disable Bluetooth sharing.
+    "com.apple.Bluetooth" = {
+      PrefKeyServicesEnabled = false;
+    };
+
+    # Disable remote Apple events.
+    "com.apple.AEServer" = {
+      AppleEventEnabled = false;
+    };
+
+    # Require password immediately after screensaver / sleep.
+    # Auto-lock screensaver after 15 minutes of idle.
+    "com.apple.screensaver" = {
+      askForPassword = 1;
+      askForPasswordDelay = 0;
+      idleTime = 900;
+    };
+
+    # Apple Terminal visual style (subset that can be expressed as plain plist values;
+    # font and colour settings require NSArchived NSFont/NSColor objects and must be
+    # configured interactively inside Terminal.app preferences).
+    "com.apple.Terminal" = {
+      # Use "Basic" as the startup and default profile so these settings apply.
+      "Default Window Settings" = "Basic";
+      "Startup Window Settings" = "Basic";
+      "Window Settings" = {
+        Basic = {
+          # Initial window geometry.
+          columnCount = 80;
+          rowCount = 25;
+          # No blinking cursor.
+          CursorType = 0;
+          BlinkCursor = false;
+          # Enable font anti-aliasing.
+          FontAntialias = true;
+        };
+      };
     };
   };
 

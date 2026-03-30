@@ -48,24 +48,30 @@ cd ~/src/github.com/piotr-yuxuan/public-environment-configuration
 
 #+begin_src zsh
 # Apple Silicon
-sudo nix --extra-experimental-features "nix-command flakes" run nix-darwin -- switch --flake .#macOS-arm64
+sudo nix --extra-experimental-features "nix-command flakes" run nix-darwin -- switch --flake '.#macOS-arm64'
 # Intel
-sudo nix --extra-experimental-features "nix-command flakes" run nix-darwin -- switch --flake .#macOS-x86_64
+sudo nix --extra-experimental-features "nix-command flakes" run nix-darwin -- switch --flake '.#macOS-x86_64'
 #+end_src
+
+On the first nix-darwin install, because it runs after nix install
+that updates terminal config files in =/etc/=, you may be prompted to
+run:
+
+#+begin_src zsh
+sudo mv /etc/bashrc /etc/bashrc.before-nix-darwin
+sudo mv /etc/zshrc /etc/zshrc.before-nix-darwin
+#+end_src
+
+- Once it completes, restart macOS and untick the box 'Reopen windows
+  when logging in'.
 
 - On subsequent rebuilds you may simply use:
 
 #+begin_src zsh
 # Apple Silicon
-sudo darwin-rebuild switch --flake .#macOS-arm64
+sudo darwin-rebuild switch --flake '.#macOS-arm64'
 # Intel
-sudo darwin-rebuild switch --flake .#macOS-x86_64
-#+end_src
-
-- Set once zsh as login shell: (FIXME: is it needed?)
-
-#+begin_src zsh
-chsh -s /run/current-system/sw/bin/zsh
+sudo darwin-rebuild switch --flake '.#macOS-x86_64'
 #+end_src
 
 - Clone Emacs configuration:
