@@ -1,13 +1,14 @@
 #!/usr/bin/env bats
 # Tests for scripts/home-layout-macOS.sh (macOS HOME layout additions).
 #
-# 'chflags' is mocked via a fake executable prepended to PATH, so these
-# tests run on any platform (Linux and macOS alike).
+# 'chflags' is mocked via the CHFLAGS_BIN environment variable so these
+# tests run on any platform (Linux and macOS alike) without touching the
+# real chflags binary.
 #
 # Isolation guarantees:
 #   - setup() asserts tmpdir is non-empty before any test body runs.
-#   - teardown() uses ${tmpdir:?} so zsh aborts the rm -rf instead of
-#     expanding to rm -rf "" if the variable were somehow empty or unset.
+#   - teardown() uses ${tmpdir:?} so the shell aborts rm -rf instead of
+#     expanding to rm -rf "" if the variable were empty or unset.
 #   - All paths are passed to zsh subprocesses via exported environment
 #     variables, never interpolated into the -c string, so a path that
 #     contains single quotes or other metacharacters cannot inject code.
@@ -20,6 +21,8 @@ setup() {
 
     # Fake chflags: records each invocation as "chflags <args>" in a log
     # file inside the test HOME so the real chflags binary is never called.
+    # Injected via CHFLAGS_BIN rather than PATH manipulation so the
+    # script's absolute-path default is overridden cleanly.
     mkdir -p "$tmpdir/bin"
     cat > "$tmpdir/bin/chflags" << 'EOF'
 #!/bin/sh
@@ -32,12 +35,12 @@ teardown() {
     rm -rf "${tmpdir:?}"
 }
 
-# Run the script live with the fake chflags on PATH.
+# Run the script live with the fake chflags injected via CHFLAGS_BIN.
 # Paths flow in via env vars to keep the -c body injection-safe.
 live() {
-    TEST_HOME="$tmpdir" TEST_SCRIPT="$SCRIPT" zsh -c '
+    TEST_HOME="$tmpdir" TEST_SCRIPT="$SCRIPT" CHFLAGS_BIN="$tmpdir/bin/chflags" zsh -c '
         export HOME=$TEST_HOME
-        export PATH=$HOME/bin:$PATH
+        export CHFLAGS_BIN
         DRY_RUN_CMD=
         source $TEST_SCRIPT
     '
@@ -104,9 +107,9 @@ chflags_log() { cat "$tmpdir/.chflags-calls" 2>/dev/null || true; }
 
 @test "dry run: no mov symlink created" {
     mkdir -p "$tmpdir/Movies"
-    run env TEST_HOME="$tmpdir" TEST_SCRIPT="$SCRIPT" zsh -c '
+    run env TEST_HOME="$tmpdir" TEST_SCRIPT="$SCRIPT" CHFLAGS_BIN="$tmpdir/bin/chflags" zsh -c '
         export HOME=$TEST_HOME
-        export PATH=$HOME/bin:$PATH
+        export CHFLAGS_BIN
         DRY_RUN_CMD=echo
         source $TEST_SCRIPT
     '
@@ -116,9 +119,9 @@ chflags_log() { cat "$tmpdir/.chflags-calls" 2>/dev/null || true; }
 
 @test "dry run: ln -s command is printed to stdout" {
     mkdir -p "$tmpdir/Movies"
-    run env TEST_HOME="$tmpdir" TEST_SCRIPT="$SCRIPT" zsh -c '
+    run env TEST_HOME="$tmpdir" TEST_SCRIPT="$SCRIPT" CHFLAGS_BIN="$tmpdir/bin/chflags" zsh -c '
         export HOME=$TEST_HOME
-        export PATH=$HOME/bin:$PATH
+        export CHFLAGS_BIN
         DRY_RUN_CMD=echo
         source $TEST_SCRIPT
     '
@@ -127,9 +130,9 @@ chflags_log() { cat "$tmpdir/.chflags-calls" 2>/dev/null || true; }
 
 @test "dry run: chflags commands are printed to stdout" {
     mkdir -p "$tmpdir/Desktop"
-    run env TEST_HOME="$tmpdir" TEST_SCRIPT="$SCRIPT" zsh -c '
+    run env TEST_HOME="$tmpdir" TEST_SCRIPT="$SCRIPT" CHFLAGS_BIN="$tmpdir/bin/chflags" zsh -c '
         export HOME=$TEST_HOME
-        export PATH=$HOME/bin:$PATH
+        export CHFLAGS_BIN
         DRY_RUN_CMD=echo
         source $TEST_SCRIPT
     '
@@ -138,9 +141,9 @@ chflags_log() { cat "$tmpdir/.chflags-calls" 2>/dev/null || true; }
 
 @test "dry run: real chflags never invoked" {
     mkdir -p "$tmpdir/Desktop"
-    run env TEST_HOME="$tmpdir" TEST_SCRIPT="$SCRIPT" zsh -c '
+    run env TEST_HOME="$tmpdir" TEST_SCRIPT="$SCRIPT" CHFLAGS_BIN="$tmpdir/bin/chflags" zsh -c '
         export HOME=$TEST_HOME
-        export PATH=$HOME/bin:$PATH
+        export CHFLAGS_BIN
         DRY_RUN_CMD=echo
         source $TEST_SCRIPT
     '

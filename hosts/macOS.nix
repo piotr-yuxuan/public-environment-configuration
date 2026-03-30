@@ -162,7 +162,7 @@
   # Finder
   system.defaults.finder = {
     AppleShowAllExtensions = true;
-    AppleShowAllFiles = true; # show hidden files
+    AppleShowAllFiles = false; # Hide hidden files
     FXEnableExtensionChangeWarning = false;
     FXDefaultSearchScope = "SCcf"; # search current folder by default
     FXPreferredViewStyle = "Nlsv"; # default to list view
@@ -202,9 +202,17 @@
     };
 
     # Disable desktop widgets (removes the Photos widget and all others).
+    # Disable Sequoia window tiling/snapping (conflicts with Rectangle).
     "com.apple.WindowManager" = {
       EnableStandardClickToShowDesktop = false;
       StandardHideWidgets = true;
+      EnableWindowSnapping = false;
+      EnableTiledWindowMargins = false;
+    };
+
+    # Rectangle: hide menu bar icon (icon is unnecessary; use keyboard shortcuts).
+    "com.knollsoft.Rectangle" = {
+      hideStatusItem = true;
     };
 
     # Disable Tip notifications.
