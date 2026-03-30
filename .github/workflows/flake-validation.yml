@@ -64,7 +64,7 @@ jobs:
         with:
           primary-key: nix-macos-${{ hashFiles('flake.lock') }}
           restore-prefixes-first-match: nix-macos-
-          gc-max-store-size-macos: 8G
+          gc-max-store-size-macos: 10239M # GitHub Actions cache is capped at 10GB, so let's get 10 GB - 1MB.
           purge: true
           purge-prefixes: nix-macos-
           purge-created: 0
