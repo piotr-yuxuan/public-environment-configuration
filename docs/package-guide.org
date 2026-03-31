@@ -153,6 +153,7 @@ using it right away.
   - [[pandoc][pandoc]]
   - [[ghostty (macOS only)][ghostty (macOS only)]]
   - [[duti (macOS only)][duti (macOS only)]]
+  - [[mysides (macOS only)][mysides (macOS only)]]
 
 * Build toolchain
 
@@ -1166,4 +1167,18 @@ duti -x public.html
 duti -x http
 # Set a default manually (app must be installed).
 duti -s org.gnu.Emacs public.json all
+#+end_src
+
+** mysides (macOS only)
+Manages Finder sidebar favourite locations.
+Installed via Homebrew (=brew "mysides"=); invoked automatically during
+=home-manager switch= (=home.activation.finderFavorites= in =home/macOS.nix=)
+using =scripts/finder-favorites-macOS.sh=.
+#+begin_src sh
+# List current sidebar locations.
+mysides list
+# Add a directory.
+mysides add "name" "file:///path/to/dir/"
+# Remove a sidebar entry.
+mysides remove "name"
 #+end_src

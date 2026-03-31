@@ -38,7 +38,7 @@ teardown() {
 # Run the script live with the fake chflags injected via CHFLAGS_BIN.
 # Paths flow in via env vars to keep the -c body injection-safe.
 live() {
-    TEST_HOME="$tmpdir" TEST_SCRIPT="$SCRIPT" CHFLAGS_BIN="$tmpdir/bin/chflags" zsh -c '
+    TEST_HOME="$tmpdir" TEST_SCRIPT="$SCRIPT" CHFLAGS_BIN="$tmpdir/bin/chflags" bash -c '
         export HOME=$TEST_HOME
         export CHFLAGS_BIN
         DRY_RUN_CMD=
@@ -107,7 +107,7 @@ chflags_log() { cat "$tmpdir/.chflags-calls" 2>/dev/null || true; }
 
 @test "dry run: no mov symlink created" {
     mkdir -p "$tmpdir/Movies"
-    run env TEST_HOME="$tmpdir" TEST_SCRIPT="$SCRIPT" CHFLAGS_BIN="$tmpdir/bin/chflags" zsh -c '
+    run env TEST_HOME="$tmpdir" TEST_SCRIPT="$SCRIPT" CHFLAGS_BIN="$tmpdir/bin/chflags" bash -c '
         export HOME=$TEST_HOME
         export CHFLAGS_BIN
         DRY_RUN_CMD=echo
@@ -119,7 +119,7 @@ chflags_log() { cat "$tmpdir/.chflags-calls" 2>/dev/null || true; }
 
 @test "dry run: ln -s command is printed to stdout" {
     mkdir -p "$tmpdir/Movies"
-    run env TEST_HOME="$tmpdir" TEST_SCRIPT="$SCRIPT" CHFLAGS_BIN="$tmpdir/bin/chflags" zsh -c '
+    run env TEST_HOME="$tmpdir" TEST_SCRIPT="$SCRIPT" CHFLAGS_BIN="$tmpdir/bin/chflags" bash -c '
         export HOME=$TEST_HOME
         export CHFLAGS_BIN
         DRY_RUN_CMD=echo
@@ -130,7 +130,7 @@ chflags_log() { cat "$tmpdir/.chflags-calls" 2>/dev/null || true; }
 
 @test "dry run: chflags commands are printed to stdout" {
     mkdir -p "$tmpdir/Desktop"
-    run env TEST_HOME="$tmpdir" TEST_SCRIPT="$SCRIPT" CHFLAGS_BIN="$tmpdir/bin/chflags" zsh -c '
+    run env TEST_HOME="$tmpdir" TEST_SCRIPT="$SCRIPT" CHFLAGS_BIN="$tmpdir/bin/chflags" bash -c '
         export HOME=$TEST_HOME
         export CHFLAGS_BIN
         DRY_RUN_CMD=echo
@@ -141,7 +141,7 @@ chflags_log() { cat "$tmpdir/.chflags-calls" 2>/dev/null || true; }
 
 @test "dry run: real chflags never invoked" {
     mkdir -p "$tmpdir/Desktop"
-    run env TEST_HOME="$tmpdir" TEST_SCRIPT="$SCRIPT" CHFLAGS_BIN="$tmpdir/bin/chflags" zsh -c '
+    run env TEST_HOME="$tmpdir" TEST_SCRIPT="$SCRIPT" CHFLAGS_BIN="$tmpdir/bin/chflags" bash -c '
         export HOME=$TEST_HOME
         export CHFLAGS_BIN
         DRY_RUN_CMD=echo

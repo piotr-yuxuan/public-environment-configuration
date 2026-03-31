@@ -1,4 +1,4 @@
-#!/usr/bin/env zsh
+#!/usr/bin/env bash
 # macOS-specific HOME directory layout additions.
 #
 # Sourced as a Home Manager activation snippet on every switch.

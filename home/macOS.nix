@@ -169,4 +169,15 @@ in {
   home.activation.homeLayoutMacOS = lib.hm.dag.entryAfter ["writeBoundary"] ''
     ${lib.fileContents ../scripts/home-layout-macOS.sh}
   '';
+
+  #  Finder sidebar favourite locations
+
+  home.activation.finderFavorites = lib.hm.dag.entryAfter ["homeLayout" "homeLayoutMacOS"] ''
+    MYSIDES_BIN="${
+      if pkgs.stdenv.hostPlatform.isAarch64
+      then "/opt/homebrew/bin/mysides"
+      else "/usr/local/bin/mysides"
+    }"
+    ${lib.fileContents ../scripts/finder-favorites-macOS.sh}
+  '';
 }

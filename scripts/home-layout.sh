@@ -1,4 +1,4 @@
-#!/usr/bin/env zsh
+#!/usr/bin/env bash
 # Cross-platform HOME directory layout.
 #
 # Creates short-named aliases (symlinks) pointing at the standard user

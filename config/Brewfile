@@ -37,6 +37,7 @@ cask "rectangle"
 cask "slack@beta"
 cask "visual-studio-code" # macOS GUI install; extensions managed via vscode "..." below
 cask "vlc"
+cask "mysides" # Manages Finder sidebar favourite locations
 
 vscode "github.copilot-chat"
 vscode "likec4.likec4-vscode"

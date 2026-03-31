@@ -32,7 +32,7 @@ teardown() {
 # Paths are injected via env vars so the single-quoted -c body is never
 # subject to word splitting or metacharacter expansion from our variables.
 live() {
-    TEST_HOME="$tmpdir" TEST_SCRIPT="$SCRIPT" zsh -c '
+    TEST_HOME="$tmpdir" TEST_SCRIPT="$SCRIPT" bash -c '
         export HOME=$TEST_HOME
         DRY_RUN_CMD=
         source $TEST_SCRIPT
@@ -157,7 +157,7 @@ live() {
 # ---------------------------------------------------------------------------
 
 @test "dry run: no directories or symlinks created" {
-    run env TEST_HOME="$tmpdir" TEST_SCRIPT="$SCRIPT" zsh -c '
+    run env TEST_HOME="$tmpdir" TEST_SCRIPT="$SCRIPT" bash -c '
         export HOME=$TEST_HOME
         DRY_RUN_CMD=echo
         source $TEST_SCRIPT
@@ -169,7 +169,7 @@ live() {
 }
 
 @test "dry run: mkdir commands are printed to stdout" {
-    run env TEST_HOME="$tmpdir" TEST_SCRIPT="$SCRIPT" zsh -c '
+    run env TEST_HOME="$tmpdir" TEST_SCRIPT="$SCRIPT" bash -c '
         export HOME=$TEST_HOME
         DRY_RUN_CMD=echo
         source $TEST_SCRIPT
@@ -178,7 +178,7 @@ live() {
 }
 
 @test "dry run: ln -s commands are printed to stdout" {
-    run env TEST_HOME="$tmpdir" TEST_SCRIPT="$SCRIPT" zsh -c '
+    run env TEST_HOME="$tmpdir" TEST_SCRIPT="$SCRIPT" bash -c '
         export HOME=$TEST_HOME
         DRY_RUN_CMD=echo
         source $TEST_SCRIPT
