@@ -1,6 +1,6 @@
-# nix-darwin system configuration for a professional macOS laptop.
+# nix-darwin system configuration for macOS hosts.
 #
-# Here nix-darwin acts as a lightweight guest, managing Nix, shells, default preferences without trying to conform the whole machine.
+# Manages Nix, shells, security hardening, and macOS default preferences.
 #
 # Apply: darwin-rebuild switch --flake .#macOS-arm64 --impure  (or .#macOS-x86_64)
 {
@@ -15,6 +15,16 @@
     settings = {
       experimental-features = ["nix-command" "flakes"];
       # auto-optimise-store removed: known to corrupt the store.
+      # Require every store path fetched from a binary cache to carry a
+      # valid cryptographic signature. Stated explicitly to prevent
+      # accidental downgrade via an override elsewhere in the module tree.
+      require-sigs = true;
+      # Allowlist exactly which signing keys are trusted. Hardcoding this
+      # prevents a rogue substituter from being silently accepted if a new
+      # substituters entry is ever added without a matching key here.
+      trusted-public-keys = [
+        "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
+      ];
       # Scoped to the machine owner so future accounts cannot push
       # arbitrary store paths bypassing signature verification.
       trusted-users = let
@@ -40,9 +50,8 @@
 
   # Shell
   # Register Nix-managed zsh in /etc/shells so it can be used as a
-  # login shell.  The actual user shell is managed by MDM/Directory
-  # Services: you may need to run `chsh -s /run/current-system/sw/bin/zsh`
-  # once manually.
+  # login shell.  You may need to run
+  # `chsh -s /run/current-system/sw/bin/zsh` once manually.
   programs.zsh.enable = true;
 
   # Keyboard & input
@@ -296,12 +305,9 @@
     lib.fileContents ../scripts/darwin-post-activation.sh;
 
   # Security
-  # MDM controls FileVault, firewall, and most security policies.
-  # We only set preferences that MDM typically leaves open.
   security.pam.services.sudo_local.touchIdAuth = true;
 
   # Application Layer Firewall (ALF)
-  # If MDM already enforces the firewall these are no-ops (MDM wins).
   networking.applicationFirewall = {
     enable = true;
     enableStealthMode = true; # drop unsolicited ICMP

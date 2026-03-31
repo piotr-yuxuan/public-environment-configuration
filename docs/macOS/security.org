@@ -3,19 +3,24 @@
 #+STARTUP: overview
 
 Security hardening rationale and audit checklist for the macOS hosts
-(corporate macOS, aarch64-darwin, MDM managed).
-
-nix-darwin acts as a lightweight guest.  MDM controls FileVault, most
-firewall policies, Gatekeeper, and software updates.  This document
-covers the hardening measures that nix-darwin and Home Manager add on
-top of the MDM baseline.
+(aarch64-darwin and x86_64-darwin).  All measures described here are
+implemented declaratively through nix-darwin (=hosts/macOS.nix=),
+Home Manager (=home/macOS.nix=, =home/base.nix=), and the
+post-activation script (=scripts/darwin-post-activation.sh=).
 
 * Table of contents :TOC_2_org:
 - [[Full disk encryption (FileVault)][Full disk encryption (FileVault)]]
+- [[System Integrity Protection (SIP)][System Integrity Protection (SIP)]]
 - [[Application Layer Firewall][Application Layer Firewall]]
 - [[ICMP redirect rejection][ICMP redirect rejection]]
 - [[Gatekeeper verification][Gatekeeper verification]]
+- [[Remote access lockdown][Remote access lockdown]]
+- [[Screen lock and idle timeout][Screen lock and idle timeout]]
+- [[Login window hardening][Login window hardening]]
+- [[Siri and assistant disabled][Siri and assistant disabled]]
+- [[AirDrop and Bluetooth sharing][AirDrop and Bluetooth sharing]]
 - [[Nix daemon trust model][Nix daemon trust model]]
+- [[Nix store signature verification][Nix store signature verification]]
 - [[sudo hardening (Touch ID)][sudo hardening (Touch ID)]]
 - [[Homebrew security environment][Homebrew security environment]]
 - [[SSH client hardening][SSH client hardening]]
@@ -28,6 +33,7 @@ top of the MDM baseline.
   - [[Listening ports][Listening ports]]
   - [[FileVault status][FileVault status]]
   - [[Gatekeeper status][Gatekeeper status]]
+  - [[SIP status][SIP status]]
   - [[ICMP redirect sysctl][ICMP redirect sysctl]]
   - [[OpenBSM audit logs][OpenBSM audit logs]]
   - [[Homebrew integrity][Homebrew integrity]]
@@ -36,22 +42,32 @@ top of the MDM baseline.
 
 * Full disk encryption (FileVault)
 
-FileVault is enforced by MDM.  nix-darwin does not manage it.
+The post-activation script checks FileVault status on every
+=darwin-rebuild switch= and prints a warning to stderr if encryption
+is off.  FileVault must be enabled manually through System Settings
+because nix-darwin has no option to toggle it.
 
 *Audit point:* run =fdesetup status= and verify "FileVault is On."
 
+* System Integrity Protection (SIP)
+
+The post-activation script verifies that SIP is enabled and warns if
+it is not.  SIP is a boot-time setting managed by the Recovery OS, so
+nix-darwin cannot enforce it, but the warning ensures it is not
+accidentally left disabled after troubleshooting.
+
+*Audit point:* run =csrutil status= and verify "enabled."
+
 * Application Layer Firewall
 
-=system.defaults.alf= configures the macOS Application Layer Firewall:
+=networking.applicationFirewall= in =hosts/macOS.nix= configures the
+macOS Application Layer Firewall:
 
-| Setting                    | Value | Purpose                               |
-|----------------------------+-------+---------------------------------------|
-| =globalstate=                |     1 | Firewall enabled                      |
-| =stealthenabled=             |     1 | Stealth mode: drop unsolicited ICMP   |
-| =allowdownloadsignedenabled= |     0 | Block incoming for unsigned downloads |
-
-If MDM already manages the firewall, these settings are no-ops (MDM
-policy wins).
+| Setting              | Value  | Purpose                              |
+|----------------------+--------+--------------------------------------|
+| =enable=             | =true= | Firewall enabled                     |
+| =enableStealthMode=  | =true= | Stealth mode: drop unsolicited ICMP  |
+| =allowSignedApp=     | =false= | Block incoming for signed downloads |
 
 *Audit point:* open System Settings > Network > Firewall and confirm
 it shows "Firewall is active."  Alternatively run
@@ -59,44 +75,112 @@ it shows "Firewall is active."  Alternatively run
 
 * ICMP redirect rejection
 
-The activation script sets =net.inet.icmp.drop_redirect=1= on every
-=darwin-rebuild switch=.  This prevents ICMP redirect injection
+The post-activation script sets =net.inet.icmp.drop_redirect=1= on
+every =darwin-rebuild switch=.  This prevents ICMP redirect injection
 attacks on untrusted Wi-Fi networks (coffee shops, conferences).
 
 *Audit point:* run =sysctl net.inet.icmp.drop_redirect= and verify
-the value is 1.  Note: this sysctl does not persist across reboots
+the value is 1.  This sysctl does not persist across reboots
 natively; it is reapplied on the next =darwin-rebuild switch=.
 
 * Gatekeeper verification
 
-The activation script checks whether Gatekeeper assessments are
-enabled and prints a warning to stderr if they are not.  This is a
-detection measure, not enforcement (MDM should enforce it).
+The post-activation script checks whether Gatekeeper assessments are
+enabled and prints a warning to stderr if they are not.  Gatekeeper
+itself is a macOS boot-time policy and cannot be toggled by
+nix-darwin, so this acts as a detection measure.
 
 *Audit point:* run =spctl --status= and verify "assessments enabled."
 
+* Remote access lockdown
+
+The post-activation script disables several remote access vectors on
+every =darwin-rebuild switch=:
+
+- *Remote Login (SSH server):* disabled via =systemsetup -setremotelogin off=.
+- *Wake-on-LAN:* disabled via =pmset -a womp 0= to prevent powering
+  on the machine from the network.
+- *IR receiver:* disabled so the machine does not respond to infrared
+  input.
+- *Remote Apple Events:* disabled in =CustomUserPreferences=
+  (=com.apple.AEServer=).
+
+* Screen lock and idle timeout
+
+=com.apple.screensaver= in =CustomUserPreferences= (=hosts/macOS.nix=)
+configures automatic screen lock:
+
+| Setting                | Value | Purpose                                     |
+|------------------------+-------+---------------------------------------------|
+| =askForPassword=       |     1 | Require password after screensaver or sleep  |
+| =askForPasswordDelay=  |     0 | Immediately (no grace period)                |
+| =idleTime=             |   900 | Screensaver activates after 15 min of idle   |
+
+* Login window hardening
+
+=system.defaults.loginwindow= in =hosts/macOS.nix= restricts the
+login screen:
+
+| Setting                | Value  | Purpose                                    |
+|------------------------+--------+--------------------------------------------|
+| =GuestEnabled=         | =false= | No guest sessions                         |
+| =DisableConsoleAccess= | =true= | Prevent console (=>console=) login         |
+| =SHOWFULLNAME=         | =true= | Username/password fields instead of avatars |
+
+The post-activation script also enables the keyboard input menu on
+the login screen so the layout tracks the last user.
+
+* Siri and assistant disabled
+
+=CustomUserPreferences= in =hosts/macOS.nix= disables Siri and the
+assistant:
+
+- =com.apple.Siri.StatusMenuVisible = false=
+- =com.apple.Siri.UserHasDeclinedEnable = true=
+- =com.apple.assistant.support."Assistant Enabled" = false=
+
+* AirDrop and Bluetooth sharing
+
+=CustomUserPreferences= in =hosts/macOS.nix= restricts wireless
+sharing:
+
+- *AirDrop:* set to contacts only (=com.apple.sharingd.DiscoverableMode=).
+- *Bluetooth sharing:* disabled
+  (=com.apple.Bluetooth.PrefKeyServicesEnabled = false=).
+
 * Nix daemon trust model
 
-=nix.settings.trusted-users= is set to =["root" "example"]= (replace
-=example= with your corporate username).  This scopes store
-substitution authority to the machine owner, preventing future
-accounts from pushing arbitrary derivations.
+=nix.settings.trusted-users= in =hosts/macOS.nix= is set to
+=["root" "$USER"]= where =$USER= is resolved at evaluation time.
+This scopes store substitution authority to the machine owner,
+preventing future accounts from pushing arbitrary derivations.
 
 *Audit point:* run =nix show-config | grep trusted-users= and verify
 only the expected user is listed.
 
+* Nix store signature verification
+
+=nix.settings= in =hosts/macOS.nix= enforces binary cache integrity:
+
+- =require-sigs = true=: every store path fetched from a cache must
+  carry a valid cryptographic signature.
+- =trusted-public-keys= is hardcoded to the official =cache.nixos.org=
+  key so a rogue substituter cannot be silently accepted.
+
+*Audit point:* run =nix show-config | grep require-sigs= and verify
+it is =true=.
+
 * sudo hardening (Touch ID)
 
-=security.pam.services.sudo_local.touchIdAuth = true= enables Touch
-ID for sudo authentication.  This provides biometric gating: shoulder
-surfing a password is not enough to escalate privileges.
-
-macOS sudo configuration (=/etc/sudoers=) is MDM managed.  nix-darwin
-does not modify it beyond the PAM service.
+=security.pam.services.sudo_local.touchIdAuth = true= in
+=hosts/macOS.nix= enables Touch ID for sudo authentication.  This
+provides biometric gating: shoulder surfing a password is not enough
+to escalate privileges.
 
 * Homebrew security environment
 
-Home Manager sets the following environment variables for Homebrew:
+Home Manager (=home/macOS.nix=) sets the following environment
+variables for Homebrew:
 
 | Variable                        | Value            | Purpose                              |
 |---------------------------------+------------------+--------------------------------------|
@@ -163,7 +247,7 @@ Security > Files and Folders:
   in.
 
 nix-darwin cannot manage TCC programmatically (it requires user
-consent via the GUI or MDM profiles).
+consent via the GUI).
 
 *Audit point:* open System Settings > Privacy & Security > Files and
 Folders and review the permissions granted to each application.
@@ -172,9 +256,9 @@ Folders and review the permissions granted to each application.
 
 ** Flake inputs
 
-Run =nix flake metadata= in the nixos directory and review the dates
-of each input.  If any are more than two weeks old, run =nix flake
-update= and rebuild.  The staleness agent should warn you
+Run =nix flake metadata= in the repository directory and review the
+dates of each input.  If any are more than two weeks old, run
+=nix flake update= and rebuild.  The staleness agent should warn you
 automatically.
 
 ** Firewall status
@@ -195,6 +279,11 @@ Run =fdesetup status= and confirm encryption is active.
 
 Run =spctl --status= and confirm assessments are enabled.
 
+** SIP status
+
+Run =csrutil status= and confirm System Integrity Protection is
+enabled.
+
 ** ICMP redirect sysctl
 
 Run =sysctl net.inet.icmp.drop_redirect= and verify the value is 1.
@@ -203,7 +292,7 @@ If it has been reset (e.g. after a macOS update), run
 
 ** OpenBSM audit logs
 
-If MDM enables the audit daemon, review logs with
+Review audit logs with
 =sudo praudit -l /var/audit/current | tail -50=.
 
 ** Homebrew integrity

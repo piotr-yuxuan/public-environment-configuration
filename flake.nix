@@ -80,6 +80,16 @@
         settings = {
           experimental-features = ["nix-command" "flakes"];
           auto-optimise-store = true;
+          # Require every store path fetched from a binary cache to carry a
+          # valid cryptographic signature. Stated explicitly to prevent
+          # accidental downgrade via an override elsewhere in the module tree.
+          require-sigs = true;
+          # Allowlist exactly which signing keys are trusted. Hardcoding this
+          # prevents a rogue substituter from being silently accepted if a new
+          # substituters entry is ever added without a matching key here.
+          trusted-public-keys = [
+            "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
+          ];
         };
         gc = {
           automatic = true;
