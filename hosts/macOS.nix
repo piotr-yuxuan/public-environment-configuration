@@ -140,7 +140,7 @@
 
   # Screenshots
   system.defaults.screencapture = {
-    location = "~/Screenshots";
+    location = "~/img/screenshots";
     type = "png";
     disable-shadow = true; # cleaner window captures
   };
@@ -259,6 +259,12 @@
       askForPassword = 1;
       askForPasswordDelay = 0;
       idleTime = 900;
+    };
+
+    # Disable UI sound effects. Corresponds to System Settings > Sound
+    # > "Play sound effects for user interface actions".
+    "com.apple.systemsound" = {
+      "com.apple.sound.uiaudio.enabled" = 0;
     };
 
     # Apple Terminal visual style (subset that can be expressed as plain plist values;
