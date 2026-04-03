@@ -37,6 +37,8 @@ cask "rectangle"
 cask "slack@beta"
 cask "visual-studio-code" # macOS GUI install; extensions managed via vscode "..." below
 cask "vlc"
+cask "goldenpassport" # Google Authenticator clone (TOTP)
+cask "localsend" # Cross-platform AirDrop alternative
 cask "mysides" # Manages Finder sidebar favourite locations
 
 vscode "github.copilot-chat"

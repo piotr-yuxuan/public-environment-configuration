@@ -16,15 +16,20 @@ cd ~/nixos && darwin-rebuild switch --flake .#macOS-arm64
 
 * Update flake inputs
 
+Each input URL in =flake.nix= pins a specific branch (e.g.
+=github:NixOS/nixpkgs/nixos-25.11=).  =nix flake update= advances
+every input to the latest commit on its current branch.  It will never
+jump to a new release: only security patches and bug fixes land on a
+stable branch.
+
 #+begin_src zsh
 cd ~/nixos
 
 # Update everything (nixpkgs, home-manager, disko, lanzaboote, …)
 nix flake update
 
-# Update a single input
-nix flake update nixpkgs
-nix flake update home-manager
+# Update only specific inputs
+nix flake update nixpkgs nixpkgs-unstable
 #+end_src
 
 Then rebuild and switch to apply.
@@ -39,6 +44,10 @@ nix flake update nixpkgs-unstable
 There is no coupling that forces kernel and unstable to move in
 lockstep.  A routine "upgrade day" with =nix flake update= (all
 inputs) followed by a rebuild is perfectly fine as well.
+
+*Note:* the older =nix flake lock --update-input nixpkgs= syntax still
+works but is deprecated.  Use positional arguments instead:
+=nix flake update nixpkgs=.
 
 * Firmware and kernel updates
 
@@ -93,10 +102,11 @@ nix-darwin.url = "github:nix-darwin/nix-darwin/nix-darwin-<NEW>";
 =nixpkgs-unstable=, =disko=, =lanzaboote=, and =nixos-hardware= have
 no version suffix and need no change.
 
-Then lock and rebuild:
+Then lock, validate, and rebuild:
 
 #+begin_src zsh
 nix flake update
+nix flake check
 # NixOS
 sudo nixos-rebuild switch --flake .#C40C04
 # macOS

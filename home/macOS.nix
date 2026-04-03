@@ -6,6 +6,7 @@
   pkgs,
   lib,
   unstable,
+  neomacs,
   ...
 }: let
   inherit (import ./lib.nix) filterAvailable;
@@ -31,6 +32,9 @@ in {
 
     # Default-app management (sets UTI/MIME handlers via LaunchServices)
     unstable.duti
+
+    # GPU-accelerated Emacs (experimental on macOS)
+    neomacs
   ];
 
   #  Git identity (fill in before first use)

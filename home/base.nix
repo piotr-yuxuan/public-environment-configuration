@@ -26,7 +26,6 @@ in {
 
   home.packages = filterAvailable [
     # Build toolchain
-    unstable.gcc
     unstable.cmake
     unstable.pkg-config
     unstable.enchant # libenchant for jinx / spell compile-time dep
@@ -53,14 +52,12 @@ in {
     unstable.jdt-language-server
     unstable.bash-language-server
     unstable.dockerfile-language-server
-    unstable.sqls
     unstable.yaml-language-server
 
     # Formatters
     unstable.alejandra # Nix formatter (opinionated)
     unstable.black
     unstable.isort
-    unstable.ruff
     unstable.yamlfmt
     unstable.shfmt
     unstable.nodePackages.prettier
@@ -72,19 +69,12 @@ in {
     # Testing
     unstable.bats # shell test framework (tests/ directory)
 
-    # Search & navigation
-    unstable.ripgrep
-    unstable.fd # user-friendly find replacement (also drives fzf)
-    unstable.tealdeer # fast tldr with simplified man pages
-
     # CLI utilities
     unstable.fortune
     unstable.macchina
-    unstable.jq
     unstable.yq-go
     unstable.curl
     unstable.tokei
-    unstable.asciinema
     unstable.bmon
     unstable.coreutils
     unstable.duckdb
@@ -94,19 +84,15 @@ in {
     unstable.silver-searcher
     unstable.tree
     unstable.poppler-utils # pdftotext, pdfinfo, etc. (xpdf is CVE-marked)
-    unstable.yt-dlp
     unstable.ffmpeg # media processing (also used by yt-dlp)
     unstable.ispell
     unstable.age # modern file encryption
     unstable.graphviz
-    unstable.pandoc
     unstable.inxi
     unstable.lsof
 
     # IaC / Cloud
-    unstable.awscli2
     unstable.aws-vault # secure AWS credential management
-    unstable.granted # fast AWS role switching
     unstable.ssm-session-manager-plugin
     unstable.podman
     unstable.sops
@@ -141,10 +127,8 @@ in {
     unstable.meson
     unstable.ninja
 
-    # Email
-    unstable.mu
-    unstable.mu.mu4e # prebuilt mu4e elisp (added to load-path below)
-    unstable.isync # provides mbsync
+    # Email (mu, mu4e, and isync/mbsync managed via programs.mu and
+    # programs.mbsync; email account config lives in home/C40C04.nix)
 
     # Spell & grammar
     unstable.languagetool # grammar checker (EN, FR, PL, …)
@@ -166,9 +150,8 @@ in {
     unstable.aspellDicts.de
   ];
 
-  #  Program modules: structured config via Home Manager
+  xdg.enable = true;
 
-  # Zsh
   programs.zsh = {
     enable = true;
     autosuggestion.enable = true;
@@ -223,7 +206,6 @@ in {
     };
   };
 
-  # Git
   programs.git = {
     enable = true;
     lfs.enable = true;
@@ -266,7 +248,6 @@ in {
     ignores = lib.splitString "\n" (lib.fileContents ../config/gitignore);
   };
 
-  # Delta (diff pager)
   programs.delta = {
     enable = true;
     options = {
@@ -277,7 +258,6 @@ in {
     };
   };
 
-  # Bat
   programs.bat = {
     enable = true;
     config = {
@@ -286,7 +266,6 @@ in {
     };
   };
 
-  # Fzf
   programs.fzf = {
     enable = true;
     enableZshIntegration = true;
@@ -323,13 +302,10 @@ in {
     ];
   };
 
-  # Zoxide
   programs.zoxide = {
     enable = true;
     enableZshIntegration = true;
   };
-
-  # Eza (ls replacement)
   programs.eza = {
     enable = true;
     enableZshIntegration = true;
@@ -337,8 +313,6 @@ in {
     git = true;
     extraOptions = ["--group-directories-first"];
   };
-
-  # Tmux (terminal multiplexer; universal scrollback and copy mode)
   programs.tmux = {
     enable = true;
     keyMode = "vi";
@@ -349,18 +323,12 @@ in {
     baseIndex = 1;
     extraConfig = lib.fileContents ../config/tmux.conf;
   };
-
-  # Direnv
   programs.direnv = {
     enable = true;
     enableZshIntegration = true;
     nix-direnv.enable = true;
   };
-
-  # Btop
   programs.btop.enable = true;
-
-  # Htop
   programs.htop = {
     enable = true;
     settings = {
@@ -370,8 +338,6 @@ in {
       highlight_base_name = true;
     };
   };
-
-  # GnuPG
   programs.gpg = {
     enable = true;
     settings = {
@@ -386,8 +352,6 @@ in {
       use-agent = true;
     };
   };
-
-  # GPG agent
   services.gpg-agent = {
     enable = true;
     enableZshIntegration = true;
@@ -404,7 +368,7 @@ in {
 
   # mu4e: prebuilt elisp on Emacs load-path
   # Append (not override): the trailing ":" tells Emacs to keep defaults.
-  home.sessionVariables.EMACSLOADPATH = "${unstable.mu.mu4e}/share/emacs/site-lisp/mu4e:";
+  home.sessionVariables.EMACSLOADPATH = "${config.programs.mu.package.mu4e}/share/emacs/site-lisp/mu4e:";
 
   # Native-module compilation (jinx, vterm, …)
   # NixOS has no /usr/include, so expose enchant (+ other lib) headers
@@ -426,22 +390,11 @@ in {
   ];
 
   xdg.configFile."enchant/enchant.ordering".text = lib.fileContents ../config/enchant.ordering;
-
   home.file.".aspell.conf".text = lib.fileContents ../config/aspell.conf;
-
-  #  HOME directory layout (symlinks + working directories)
-  #
-  # Creates short aliases (img, net, pvt, snd, dist, …) pointing at
-  # the standard user directories, and plain working directories (bin/,
-  # man/, pkg/, src/).  See readme.org §Organisation of $HOME for the
-  # full rationale.  Platform-specific additions (mov) are in the
-  # host-specific Home Manager modules.
 
   home.activation.homeLayout = lib.hm.dag.entryAfter ["writeBoundary"] ''
     ${lib.fileContents ../scripts/home-layout.sh}
   '';
-
-  # SSH
   programs.ssh = {
     enable = true;
     enableDefaultConfig = false;
@@ -466,16 +419,44 @@ in {
     };
   };
 
-  # Ripgrep XDG config
-  home.sessionVariables.RIPGREP_CONFIG_PATH = "${config.xdg.configHome}/ripgrep/config";
-
-  xdg.configFile."ripgrep/config".text = lib.fileContents ../config/ripgrep.conf;
+  programs.asciinema.enable = true;
+  programs.awscli.enable = true;
+  programs.fd = {
+    enable = true;
+    hidden = true;
+  };
+  programs.gcc.enable = true;
+  programs.granted = {
+    enable = true;
+    enableZshIntegration = true;
+  };
+  programs.jq.enable = true;
+  programs.mu.enable = true;
+  programs.opencode.enable = true;
+  programs.pandoc.enable = true;
+  programs.ripgrep = {
+    enable = true;
+    arguments = [
+      "--smart-case"
+      "--hidden"
+      "--glob=!.git/"
+      "--glob=!node_modules/"
+      "--glob=!.direnv/"
+      "--glob=!straight/repos/"
+      "--glob=!eln-cache/"
+    ];
+  };
+  programs.ruff = {
+    enable = true;
+    settings = {};
+  };
+  programs.sqls.enable = true;
+  programs.tealdeer.enable = true;
+  programs.yt-dlp.enable = true;
 
   #  XDG base directories
   # Practicalli Clojure deps.edn
   # Community aliases for tools.deps.  Tracked as a flake input so
   # `nix flake update` always pulls the latest main commit.
   xdg.configFile."clojure/deps.edn".source = "${practicalli-clojure-deps-edn}/deps.edn";
-
-  xdg.enable = true;
 }

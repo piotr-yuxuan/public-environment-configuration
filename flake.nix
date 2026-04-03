@@ -37,6 +37,12 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    # Neomacs: GPU-accelerated Emacs rewritten in Rust.
+    # Pre-built binaries for WPE WebKit via nix-wpe-webkit Cachix.
+    neomacs = {
+      url = "github:eval-exec/neomacs/v0.0.2";
+    };
+
     # Starship gruvbox-rainbow preset (raw TOML, not a flake).
     # Refreshed automatically on `nix flake update`.
     starship-gruvbox-rainbow = {
@@ -61,6 +67,7 @@
     nixos-hardware,
     home-manager,
     nix-darwin,
+    neomacs,
     starship-gruvbox-rainbow,
     practicalli-clojure-deps-edn,
     ...
@@ -89,6 +96,11 @@
           # substituters entry is ever added without a matching key here.
           trusted-public-keys = [
             "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
+            "nix-wpe-webkit.cachix.org-1:ItCjHkz1Y5QcwqI9cTGNWHzcox4EqcXqKvOygxpwYHE="
+          ];
+          substituters = [
+            "https://cache.nixos.org"
+            "https://nix-wpe-webkit.cachix.org"
           ];
         };
         gc = {
@@ -162,7 +174,10 @@
         useGlobalPkgs = true; # reuse the system nixpkgs instance
         useUserPackages = true; # install into /etc/profiles/per-user
         backupFileExtension = "hm-backup";
-        extraSpecialArgs = {inherit unstable starship-gruvbox-rainbow practicalli-clojure-deps-edn;};
+        extraSpecialArgs = {
+          inherit unstable starship-gruvbox-rainbow practicalli-clojure-deps-edn;
+          neomacs = neomacs.packages.x86_64-linux.default;
+        };
 
         users.caocoa = {
           imports =
@@ -252,6 +267,7 @@
                 extraSpecialArgs = {
                   unstable = unstable-darwin;
                   inherit starship-gruvbox-rainbow practicalli-clojure-deps-edn;
+                  neomacs = neomacs.packages.${system}.default;
                 };
 
                 users.${darwinUser} = {

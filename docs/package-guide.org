@@ -92,6 +92,7 @@ using it right away.
 - [[AI / ML][AI / ML]]
   - [[ollama][ollama]]
   - [[openai-whisper][openai-whisper]]
+  - [[opencode][opencode]]
   - [[open-webui][open-webui]]
 - [[Email][Email]]
   - [[mu / mu4e][mu / mu4e]]
@@ -118,6 +119,7 @@ using it right away.
   - [[tmux][tmux]]
 - [[C40C04-only packages][C40C04-only packages]]
   - [[emacs][emacs]]
+  - [[neomacs][neomacs]]
   - [[firefox-devedition][firefox-devedition]]
   - [[vscode][vscode]]
   - [[maestral / maestral-gui][maestral / maestral-gui]]
@@ -127,6 +129,7 @@ using it right away.
   - [[difftastic][difftastic]]
   - [[dust / duf][dust / duf]]
   - [[compsize][compsize]]
+  - [[bees (C40C04 only)][bees (C40C04 only)]]
   - [[bluez (Bluetooth)][bluez (Bluetooth)]]
   - [[USB-C monitor hotplug stabilisation][USB-C monitor hotplug stabilisation]]
   - [[date-menu-formatter (C40C04 only)][date-menu-formatter (C40C04 only)]]
@@ -137,6 +140,10 @@ using it right away.
   - [[clipboard-history (C40C04 only)][clipboard-history (C40C04 only)]]
   - [[auto-power-profile (C40C04 only)][auto-power-profile (C40C04 only)]]
   - [[libreoffice (C40C04 only)][libreoffice (C40C04 only)]]
+  - [[authenticator (C40C04 only)][authenticator (C40C04 only)]]
+  - [[localsend (C40C04 only)][localsend (C40C04 only)]]
+  - [[android-tools (C40C04 only)][android-tools (C40C04 only)]]
+  - [[scrcpy (C40C04 only)][scrcpy (C40C04 only)]]
 - [[Virtualisation (C40C04 only)][Virtualisation (C40C04 only)]]
   - [[qemu_kvm][qemu_kvm]]
   - [[virt-manager][virt-manager]]
@@ -154,6 +161,8 @@ using it right away.
   - [[ghostty (macOS only)][ghostty (macOS only)]]
   - [[duti (macOS only)][duti (macOS only)]]
   - [[mysides (macOS only)][mysides (macOS only)]]
+  - [[goldenpassport (macOS only)][goldenpassport (macOS only)]]
+  - [[localsend (macOS only)][localsend (macOS only)]]
 
 * Build toolchain
 
@@ -755,6 +764,13 @@ whisper audio.mp3 --model medium --language fr   # transcribe French audio
 whisper recording.wav --model small --output_format srt   # produce subtitles
 #+end_src
 
+** opencode
+AI coding agent for the terminal.
+#+begin_src sh
+opencode                       # launch the TUI
+opencode "refactor this function to use pattern matching"   # one-shot prompt
+#+end_src
+
 ** open-webui
 Local web UI for Ollama (and OpenAI-compatible APIs).
 #+begin_src sh
@@ -927,6 +943,16 @@ C-b -                          # split pane horizontally
 ** emacs
 Text editor and Lisp environment.  The flagship editor in this config.
 
+** neomacs
+GPU-accelerated Emacs rewritten in Rust.  Uses =wgpu= for hardware
+accelerated rendering (Vulkan/Metal/DX12/OpenGL), inline 4K
+images/video, and smooth animations.  Pre-built WPE WebKit dependency
+is fetched via Cachix (=nix-wpe-webkit.cachix.org=).  Installed on
+both C40C04 and macOS (experimental on macOS).
+#+begin_src sh
+neomacs                        # launch Neomacs
+#+end_src
+
 ** firefox-devedition
 Firefox with developer tools enabled by default.
 
@@ -977,6 +1003,17 @@ Show compression ratio of files on btrfs.  Requires root.
 #+begin_src sh
 sudo compsize /                # whole filesystem compression stats
 sudo compsize /nix/store       # compression ratio for /nix/store
+#+end_src
+
+** bees (C40C04 only)
+Block-level deduplication daemon for btrfs.  Runs in the background
+and transparently merges identical extents across all subvolumes.
+Works well with zstd compression already enabled on lv-btrfs.
+Configured as a NixOS service in =hosts/C40C04.nix=.
+#+begin_src sh
+systemctl status beesd@root          # check the daemon status
+journalctl -u beesd@root -f          # follow dedup activity
+sudo bees-status /run/bees/root.status  # live progress (if available)
 #+end_src
 
 ** bluez (Bluetooth)
@@ -1055,6 +1092,48 @@ to install the Grammalecte LibreOffice extension.
 soffice                                     # launch LibreOffice
 soffice --writer                             # launch Writer directly
 systemctl --user status languagetool         # check LanguageTool server
+#+end_src
+
+** authenticator (C40C04 only)
+GNOME Authenticator: two-factor authentication code generator for
+GNOME.  Supports TOTP and HOTP tokens, encrypted storage via GNOME
+Keyring, QR code scanning, and import/export.
+#+begin_src sh
+authenticator                                # launch the GUI
+#+end_src
+
+** localsend (C40C04 only)
+Open source, cross-platform alternative to AirDrop.  Share files and
+messages to nearby devices over the local network without an internet
+connection.  Uses a REST API and HTTPS encryption.
+#+begin_src sh
+localsend                                    # launch the GUI
+#+end_src
+
+** android-tools (C40C04 only)
+Android platform tools: =adb= (Android Debug Bridge), =fastboot=, and
+=mkbootimg=.  Requires USB debugging enabled on the device (Settings >
+Developer options > USB debugging).
+#+begin_src sh
+adb devices                          # list connected devices
+adb shell                            # open an interactive shell on the device
+adb push local.txt /sdcard/          # copy a file to the device
+adb pull /sdcard/DCIM/photo.jpg .    # copy a file from the device
+adb logcat                           # stream device logcat output
+adb install app.apk                  # sideload an APK
+fastboot devices                     # list devices in fastboot mode
+fastboot reboot                      # reboot device from fastboot
+#+end_src
+
+** scrcpy (C40C04 only)
+Display and control Android devices over USB or TCP/IP.  Mirrors the
+device screen in a window with low latency and allows keyboard/mouse
+input.  Requires USB debugging enabled on the Android device.
+#+begin_src sh
+scrcpy                                       # mirror via USB
+scrcpy --tcpip=192.168.1.42                  # mirror over Wi-Fi
+scrcpy --no-audio --max-fps 30               # video only, capped at 30 fps
+scrcpy --record file.mp4                     # mirror and record to file
 #+end_src
 
 * Virtualisation (C40C04 only)
@@ -1181,4 +1260,22 @@ mysides list
 mysides add "name" "file:///path/to/dir/"
 # Remove a sidebar entry.
 mysides remove "name"
+#+end_src
+
+** goldenpassport (macOS only)
+Native macOS implementation of Google Authenticator built with Swift.
+Provides TOTP two-factor authentication code generation from the menu
+bar.
+#+begin_src sh
+# Launch from Spotlight or the Applications folder.
+open -a GoldenPassport
+#+end_src
+
+** localsend (macOS only)
+Open source, cross-platform alternative to AirDrop.  Share files and
+messages to nearby devices over the local network without an internet
+connection.  Uses a REST API and HTTPS encryption.  Installed via
+Homebrew cask on macOS, via nixpkgs on C40C04.
+#+begin_src sh
+open -a LocalSend
 #+end_src
