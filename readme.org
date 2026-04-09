@@ -374,17 +374,15 @@ These file names are inspired from what [[Go language][golang]] expects.
 
 #+begin_src zsh
 # NixOS
-cd ~/nixos && sudo nixos-rebuild switch --flake .#C40C04
+sudo nixos-rebuild switch --flake .#C40C04
 
 # macOS
-cd ~/nixos && darwin-rebuild switch --flake .#macOS-arm64
+darwin-rebuild switch --flake .#macOS-arm64
 #+end_src
 
 ** Update flake inputs
 
 #+begin_src zsh
-cd ~/nixos
-
 # Update everything (nixpkgs, home-manager, disko, lanzaboote, …) nix
 flake update
 
@@ -610,7 +608,7 @@ brew update && brew upgrade  # refresh everything
 brew reinstall --cask <name> # force-reinstall a broken cask
 
 # Re-run the Brewfile manually
-brew bundle install --file ~/nixos/config/Brewfile
+brew bundle install --file config/Brewfile
 #+end_src
 
 ** Password change (NixOS)

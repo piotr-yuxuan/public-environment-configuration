@@ -43,13 +43,37 @@
         );
     };
     gc = {
-      automatic = true;
-      interval = {
-        Weekday = 0;
-        Hour = 3;
-        Minute = 0;
-      }; # weekly, Sunday 03:00
-      options = "--delete-older-than 30d";
+      automatic = false; # replaced by the nh-clean launchd agent below
+    };
+  };
+
+  # nh: weekly garbage collection via a launchd user agent.
+  # nix-darwin has no programs.nh module, so the periodic job is wired
+  # manually.  Runs every Sunday at 03:00, keeping the last 5 generations
+  # and anything newer than 7 days (mirrors the C40C04 policy exactly).
+  # nh clean also removes gcroots, unlike plain nix-collect-garbage.
+  launchd.user.agents.nh-clean = {
+    serviceConfig = {
+      Label = "org.nixos.nh-clean";
+      ProgramArguments = [
+        "${unstable.nh}/bin/nh"
+        "clean"
+        "all"
+        "--keep"
+        "5"
+        "--keep-since"
+        "7d"
+      ];
+      StartCalendarInterval = [
+        {
+          Weekday = 0;
+          Hour = 3;
+          Minute = 0;
+        }
+      ];
+      RunAtLoad = false;
+      StandardOutPath = "/tmp/nh-clean.log";
+      StandardErrorPath = "/tmp/nh-clean.log";
     };
   };
 

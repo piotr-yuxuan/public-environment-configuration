@@ -8,10 +8,10 @@ troubleshooting.
 
 #+begin_src zsh
 # NixOS
-cd ~/nixos && sudo nixos-rebuild switch --flake .#C40C04
+sudo nixos-rebuild switch --flake .#C40C04
 
 # macOS
-cd ~/nixos && darwin-rebuild switch --flake .#macOS-arm64
+darwin-rebuild switch --flake .#macOS-arm64
 #+end_src
 
 * Update flake inputs
@@ -23,8 +23,6 @@ jump to a new release: only security patches and bug fixes land on a
 stable branch.
 
 #+begin_src zsh
-cd ~/nixos
-
 # Update everything (nixpkgs, home-manager, disko, lanzaboote, …)
 nix flake update
 
@@ -168,7 +166,7 @@ applied automatically on every =darwin-rebuild switch= via a Home
 Manager activation script.  To run it manually:
 
 #+begin_src zsh
-brew bundle install --file ~/nixos/config/Brewfile
+brew bundle install --file config/Brewfile
 #+end_src
 
 To upgrade everything and clean up stale downloads:

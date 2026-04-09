@@ -108,7 +108,7 @@ Remove the USB drive. The system boots into *GDM*. Log in as =caocoa=.
 * 9. Clone repositories
 
 #+begin_src zsh
-git clone https://github.com/<your-user>/nixos.git ~/nixos
+git clone https://github.com/<your-user>/nixos.git
 git clone https://github.com/<your-user>/emacs.d.git ~/.emacs.d
 #+end_src
 

@@ -16,9 +16,6 @@ ignore private-bin
 whitelist ${HOME}/.config/Code
 whitelist ${HOME}/.vscode
 
-noblacklist ${HOME}/nixos
-whitelist ${HOME}/nixos
-
 noblacklist ${HOME}/OSX-KVM
 whitelist ${HOME}/OSX-KVM
 

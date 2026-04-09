@@ -109,6 +109,7 @@ using it right away.
   - [[firejail (C40C04 only)][firejail (C40C04 only)]]
   - [[auditd (C40C04 only)][auditd (C40C04 only)]]
 - [[Shell & prompt][Shell & prompt]]
+  - [[nh][nh]]
   - [[zsh][zsh]]
   - [[starship][starship]]
   - [[direnv][direnv]]
@@ -720,6 +721,30 @@ vlc file.mp4
 cvlc --play-and-exit file.mp3  # headless playback
 #+end_src
 
+VLC uses VA-API hardware decoding on the AMD Radeon 780M (Phoenix)
+iGPU via the =radeonsi= Mesa driver.  The VCN v4.0 unified decode
+ring can time out under heavy HEVC/AV1 workloads; the kernel resets
+the ring successfully, but Mesa treats the context reset as fatal and
+calls =abort()=, crashing VLC.  Three =amdgpu= kernel parameters in
+=hosts/C40C04.nix= mitigate this:
+
+| Parameter                  | Value                    | Purpose                                              |
+|----------------------------+--------------------------+------------------------------------------------------|
+| =timeout_fatal_disable=    | =1=                      | Non-fatal ring resets (Mesa no longer aborts)         |
+| =lockup_timeout=           | =10000,10000,10000,10000= | 10 s per ring (GFX, Compute, SDMA, Video) vs 2 s default |
+| =gpu_recovery=             | =1=                      | Explicit ring reset (default is auto)                |
+
+To verify after reboot:
+#+begin_src sh
+cat /sys/module/amdgpu/parameters/timeout_fatal_disable   # expected: Y
+cat /sys/module/amdgpu/parameters/lockup_timeout           # expected: 10000,10000,10000,10000
+cat /sys/module/amdgpu/parameters/gpu_recovery             # expected: 1
+#+end_src
+
+If VCN timeouts remain very frequent, consider updating
+=linux-firmware= (newer VCN v4.0 firmware), trying a newer kernel, or
+falling back to software decode (=avcodec-hw=none= in =vlcrc=).
+
 * Profiling & flamegraphs
 
 ** visualvm
@@ -875,6 +900,75 @@ sudo ausearch -k secureboot            # Secure Boot key events
 #+end_src
 
 * Shell & prompt
+
+** nh
+Nix CLI helper that wraps =nixos-rebuild=, =darwin-rebuild=, and
+=home-manager= with a nicer interface: a build tree via
+=nix-output-monitor=, a coloured diff of what is about to change via
+=dix=, and an interactive confirmation prompt before activation.
+
+Installed fleet-wide via =home/base.nix=.  On C40C04 the NixOS module
+(=programs.nh= in =hosts/C40C04.nix=) also enables a weekly =nh clean=
+systemd timer that prunes old generations (keeps 5, anything newer than
+7 days).  On macOS an equivalent launchd user agent runs on the same
+schedule (Sunday 03:00) via =hosts/macOS.nix=.
+
+The =NH_FLAKE= session variable is intentionally unset: the flake path
+is user-specific and must be supplied at the call site or via a personal
+shell alias.  On C40C04, =NH_OS_FLAKE= is set automatically by the NixOS
+module (=programs.nh.flake=) and takes precedence over =NH_FLAKE= for
+=nh os= commands.
+
+*** Seeing a human-friendly diff before switching
+
+This is the key workflow: build the new configuration, show you exactly
+what derivations and closures are added, changed, or removed, then ask
+for confirmation before touching the running system.
+
+On NixOS (C40C04):
+#+begin_src sh
+nh os switch          # reads NH_OS_FLAKE; auto-detects hostname
+nh os switch -H C40C04   # explicit host
+#+end_src
+
+On macOS:
+#+begin_src sh
+nh darwin switch          # reads NH_FLAKE; auto-detects hostname
+#+end_src
+
+For Home Manager on any platform:
+#+begin_src sh
+nh home switch          # reads NH_FLAKE
+#+end_src
+
+In all three cases =nh= will:
+1. Evaluate the flake and build the new system closure (output routed
+   through =nix-output-monitor= for a readable build tree).
+2. Display a =dix= diff: a compact, colour-coded summary of every
+   package added, removed, or version-bumped between the current and
+   new generation.
+3. Ask =Apply? [y/N]= before running the activation script.
+
+To preview without any risk of activation, use =--dry=:
+#+begin_src sh
+nh os switch --dry          # build + diff, never activate
+nh darwin switch --dry
+nh home switch --dry
+#+end_src
+
+*** Garbage collection
+#+begin_src sh
+nh clean all                           # remove old generations + collect garbage
+nh clean all --keep 5 --keep-since 7d # keep 5 gens and anything < 7 days old
+nh clean user                          # clean current-user profile only
+#+end_src
+On C40C04 =nh clean= runs automatically every week via a systemd timer.
+
+*** Package search
+#+begin_src sh
+nh search ripgrep              # search nixpkgs via Elasticsearch (very fast)
+nh search --channel nixos-unstable fzf
+#+end_src
 
 ** zsh
 Your login shell.  Configured via Home Manager with autosuggestion,

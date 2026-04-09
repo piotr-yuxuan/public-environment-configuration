@@ -19,11 +19,10 @@
 }: let
   inherit (import ./lib.nix) filterAvailable;
 in {
-  # Let Home Manager manage itself
+  # Let Home Manager manage itself.
   programs.home-manager.enable = true;
 
   #  Packages: cross-platform CLI tools (both hosts)
-
   home.packages = filterAvailable [
     # Build toolchain
     unstable.cmake
@@ -46,25 +45,28 @@ in {
     unstable.clojure-lsp
     unstable.texlab # LaTeX language server
     unstable.pyright
-    unstable.nodePackages.typescript-language-server
-    unstable.nodePackages.typescript
+    unstable.typescript-language-server
+    unstable.typescript
     unstable.ltex-ls
     unstable.jdt-language-server
     unstable.bash-language-server
     unstable.dockerfile-language-server
     unstable.yaml-language-server
+    unstable.terraform-ls
+    unstable.terraform-lsp
 
     # Formatters
-    unstable.alejandra # Nix formatter (opinionated)
+    unstable.alejandra # Nix formatter
     unstable.black
     unstable.isort
     unstable.yamlfmt
     unstable.shfmt
-    unstable.nodePackages.prettier
+    unstable.prettier
 
     # Linters
     unstable.shellcheck
     unstable.yamllint
+    pkgs.python3Packages.cfn-lint # CloudFormation template linter
 
     # Testing
     unstable.bats # shell test framework (tests/ directory)
@@ -97,12 +99,9 @@ in {
     unstable.podman
     unstable.sops
     unstable.tenv
-    unstable.terraform-ls
-    unstable.terraform-lsp
     unstable.terraform-landscape
 
     # CloudFormation
-    pkgs.python3Packages.cfn-lint # CloudFormation template linter
     pkgs.rain # CloudFormation deploy / diff CLI
 
     # Load testing / monitoring
@@ -118,6 +117,9 @@ in {
     pkgs.visualvm # JVM monitoring & profiling GUI
     pkgs.async-profiler # low-overhead JVM sampling profiler
     pkgs.flamegraph # Brendan Gregg's FlameGraph scripts
+
+    # System management
+    unstable.nh # Nix CLI helper: human-friendly rebuild, diff, GC, and search
 
     # AI / ML
     unstable.ollama
@@ -196,12 +198,10 @@ in {
   # The preset TOML is fetched from upstream via the
   # starship-gruvbox-rainbow flake input; `nix flake update`
   # pulls the latest version automatically.
-  programs.starship = let
-    upstream = builtins.fromTOML (builtins.readFile starship-gruvbox-rainbow);
-  in {
+  programs.starship = {
     enable = true;
     enableZshIntegration = true;
-    settings = lib.recursiveUpdate upstream {
+    settings = lib.recursiveUpdate (builtins.fromTOML (builtins.readFile starship-gruvbox-rainbow)) {
       os.symbols.NixOS = ""; # nf-linux-nixos
     };
   };
@@ -366,6 +366,11 @@ in {
     maxCacheTtl = 7200;
   };
 
+  # nh: NH_OS_FLAKE (set by programs.nh.flake on NixOS) takes precedence
+  # over NH_FLAKE for `nh os` commands.  NH_FLAKE is intentionally unset
+  # here: the flake path is user-specific and must be supplied at the call
+  # site (e.g. `nh home switch /path/to/repo`) or via a shell alias.
+
   # mu4e: prebuilt elisp on Emacs load-path
   # Append (not override): the trailing ":" tells Emacs to keep defaults.
   home.sessionVariables.EMACSLOADPATH = "${config.programs.mu.package.mu4e}/share/emacs/site-lisp/mu4e:";
@@ -378,7 +383,6 @@ in {
   home.sessionVariables.C_INCLUDE_PATH = "${unstable.enchant.dev}/include";
   home.sessionVariables.LIBRARY_PATH = "${lib.getLib unstable.enchant}/lib";
 
-  # Hunspell / Enchant / Aspell paths
   home.sessionVariables.DICPATH = lib.concatStringsSep ":" [
     "${unstable.hunspellDicts.en_GB-ise}/share/hunspell"
     "${unstable.hunspellDicts.en_US}/share/hunspell"
