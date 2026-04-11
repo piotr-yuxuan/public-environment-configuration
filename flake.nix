@@ -267,7 +267,6 @@
                 extraSpecialArgs = {
                   unstable = unstable-darwin;
                   inherit starship-gruvbox-rainbow practicalli-clojure-deps-edn;
-                  neomacs = neomacs.packages.${system}.default;
                 };
 
                 users.${darwinUser} = {
