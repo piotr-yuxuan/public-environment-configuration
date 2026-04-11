@@ -15,12 +15,8 @@ setopt HIST_REDUCE_BLANKS   # Strip superfluous blanks before recording.
 # Emacs key bindings
 bindkey -e
 
-# Completion styling
-zstyle ':completion:*' menu select
+# Completion styling (minimal: case-insensitive matching + cache)
 zstyle ':completion:*' matcher-list 'm:{a-zA-Z}={A-Za-z}'
-zstyle ':completion:*' list-colors "${(s.:.)LS_COLORS}"
-zstyle ':completion:*' group-name ''
-zstyle ':completion:*:descriptions' format '%F{green}-- %d --%f'
 zstyle ':completion:*' use-cache on
 zstyle ':completion:*' cache-path "$HOME/.zcompcache"
 
@@ -53,13 +49,15 @@ else
     export VISUAL='emacsclient --create-frame'
 fi
 
-# Enter = newline; C-j = run command (inside Emacs terminals)
-_emt_insert_newline() { BUFFER="$BUFFER"$'\n'; CURSOR=$#BUFFER; }
-zle -N _emt_insert_newline
-if [[ -n "$MISTTY" || -n "$EAT_SHELL_INTEGRATION_DIR" ]]; then
-    bindkey '^M' _emt_insert_newline   # Enter → insert newline
-    bindkey '^J' accept-line           # C-j   → run command
-fi
+# edit-command-line: C-x C-e opens the current command in $VISUAL/$EDITOR.
+# Standard zsh feature; works in every terminal emulator.
+autoload -Uz edit-command-line
+zle -N edit-command-line
+bindkey '^X^E' edit-command-line
+
+# Disable autosuggestions inside eat: ghost text clashes with eat's rendering.
+# Keep them in mistty (shell renders natively), Gnome Console, and Ghostty.
+[[ -n "$EAT_SHELL_INTEGRATION_DIR" ]] && ZSH_AUTOSUGGEST_STRATEGY=()
 
 # Login greeting (once per boot)
 if [[ -t 1 && ! -f "$HOME/.hushlogin" ]]; then

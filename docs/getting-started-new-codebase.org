@@ -1,0 +1,250 @@
+#+TITLE: Getting started with a new codebase
+#+STARTUP: overview
+
+When picking up an unfamiliar codebase the most productive first hour
+is not reading source files but interrogating the commit history. Five
+lightweight git commands surface churn hotspots, bus factor, bug
+clusters, momentum, and crisis patterns without any external tooling.
+Visual analysis tools then build on this foundation: burndown charts,
+ownership timelines, coupling matrices, and animated history replays
+each reveal structure that raw numbers cannot convey.
+
+Reference: [[https://piechowski.io/post/git-commands-before-reading-code/][Piechowski 2026, "5 Git commands before reading code"]].
+
+* Part one: git diagnostic commands
+
+** What changes the most
+
+The twenty most-changed files in the last year.
+
+#+begin_src sh
+git log --format=format: --name-only --since="1 year ago" \ | sort |
+uniq -c | sort -nr | head -20
+#+end_src
+
+*Reading guidance.* The top files are the highest-risk code.
+Cross-reference against the bug cluster command below. A file that is
+high-churn and high-bug is the single biggest risk.
+
+*Caveat.* High churn on actively developed code is normal. The signal
+is high churn on code nobody wants to own.
+
+** Who built this
+
+Every contributor ranked by commit count.
+
+#+begin_src sh
+git shortlog -sn --no-merges git shortlog -sn --no-merges --since="6
+months ago"
+#+end_src
+
+*Reading guidance.* If one person accounts for 60% or more that is the
+bus factor. If they left six months ago that is a crisis. Compare the
+all-time shortlog with a six-month window to spot departed knowledge
+holders.
+
+*Caveat.* Squash-merge workflows compress authorship; the output
+reflects who merged, not who wrote.
+
+** Where do bugs cluster
+
+Same shape as the churn command, filtered to commits with bug-related
+keywords.
+
+#+begin_src sh
+git log -i -E --grep="fix|bug|broken" --name-only --format='' \ | sort
+| uniq -c | sort -nr | head -20
+#+end_src
+
+*Reading guidance.* Compare this list against the churn hotspots. Files
+on both lists are highest-risk code that keeps breaking and keeps
+getting patched but never gets properly fixed.
+
+*Caveat.* Depends entirely on commit message discipline. If the team
+writes "update stuff" for every commit, this produces nothing useful.
+
+** Is this project accelerating or dying
+
+Commit count by month for the entire history.
+
+#+begin_src sh
+git log --format='%ad' --date=format:'%Y-%m' \ | sort | uniq -c
+#+end_src
+
+*Reading guidance.* A steady rhythm is healthy. A count dropping by half
+in a single month usually means someone left. A declining curve over
+six to twelve months signals the team is losing momentum. Periodic
+spikes followed by quiet months indicate batched releases rather than
+continuous shipping.
+
+*Caveat.* This is team data, not code quality data.
+
+** How often is the team firefighting
+
+Revert and hotfix frequency.
+
+#+begin_src sh
+git log --oneline --since="1 year ago" \ | grep -iE
+'revert|hotfix|emergency|rollback'
+#+end_src
+
+*Reading guidance.* A handful over a year is normal. Reverts every
+couple of weeks means the team does not trust its deploy process. Zero
+results is also a signal: either the team is stable or nobody writes
+descriptive commit messages.
+
+* Part two: visual analysis tools
+
+** Tier 1: native packages (zero friction, cross-platform)
+
+*** onefetch
+
+Instant repo summary card in the terminal. Shows languages,
+contributors, license, LOC, repo size.
+
+#+begin_src sh
+onefetch onefetch --no-art onefetch -o json
+#+end_src
+
+*Reading guidance.* A quick orientation, not deep analysis. No history
+dimension.
+
+*** scc
+
+Fast code counting with complexity estimation and COCOMO cost model.
+Supports HTML/JSON/CSV output.
+
+#+begin_src sh
+scc . scc --by-file --sort code scc --format html > report.html
+#+end_src
+
+*Reading guidance.* Useful for understanding the scale and shape of a
+codebase. The complexity score is a heuristic, not a rigorous measure.
+Do not compare complexity scores across languages.
+
+*** git-sizer
+
+Computes size metrics for git objects. Flags values that might cause
+problems (huge blobs, deep trees).
+
+#+begin_src sh
+git-sizer --verbose git-sizer --json
+#+end_src
+
+*Reading guidance.* A repo health check, not a code quality assessment.
+
+*** gource
+
+Animated 3D visualisation of repository history. Can export to video
+via ffmpeg.
+
+#+begin_src sh
+gource . gource --seconds-per-day 0.5 --auto-skip-seconds 1 -o - \ |
+ffmpeg -y -r 60 -f image2pipe -vcodec ppm -i - \ -vcodec libx264
+-preset medium -pix_fmt yuv420p -crf 1 gource.mp4
+#+end_src
+
+*Reading guidance.* Compelling for presentations and intuitive
+understanding of who works where. Do not draw quantitative conclusions
+from an animation.
+
+*** tokei
+
+Already installed. Fast line counting by language.
+
+#+begin_src sh
+tokei . tokei src/ --sort code
+#+end_src
+
+** Tier 2: Podman containers (x86_64 only, C40C04)
+
+*** Hercules
+
+The =srcd/hercules= Docker image is the only open-source tool that
+produces overwrites matrices, developer clustering via DTW and
+seriation, and per-person/per-file burndown charts. Abandoned since
+January 2020 but functionally unique.
+
+The =hercules= binary analyses a repository and pipes Protocol Buffers
+output to =labours= (Python) which renders matplotlib charts. All
+analyses can run in a single pass.
+
+The =scripts/getting-started-new-codebase.zsh= wrapper automates the
+full pipeline: accepts a local repo path, runs every available
+diagnostic (git commands, onefetch, scc, git-sizer, tokei, Hercules,
+code-maat), and collects all output in a single timestamped directory.
+Each tool is optional; the script checks for its presence and skips
+gracefully when missing.
+
+**** Analyses and labours flags
+
+| Flag              | Graph                  | Axes / what to look for                                                                                                               |
+|-------------------+------------------------+---------------------------------------------------------------------------------------------------------------------------------------|
+| =burndown-project=  | Project burndown       | X: time, Y: lines of code.  Shows how code written at each point in time survives or gets deleted over time.                          |
+| =burndown-file=     | File burndown          | Same as project burndown but per file.  Identify files where old code is constantly replaced.                                         |
+| =burndown-person=   | People burndown        | Per-author code survival.  See whose code has the longest half-life.                                                                  |
+| =overwrites-matrix= | Overwrites matrix      | Heatmap of who overwrites whose code.  Diagonal is self-edits.  Off-diagonal cells reveal refactoring patterns or ownership friction. |
+| =ownership=         | Code ownership         | Stacked area chart of LOC by author over time.  Shows knowledge concentration.                                                        |
+| =couples=           | File coupling          | Files that change together.  Reveals hidden dependencies not visible in imports.                                                      |
+| =devs=              | Developer clustering   | Dendrogram grouping developers by commit time series similarity (DTW + seriation).  Reveals sub-teams.                                |
+| =old-vs-new=        | Added vs changed lines | Ratio of new code to modifications over time.  A shift toward "changed" suggests the codebase is maturing.                            |
+| =devs-efforts=      | Efforts through time   | Per-developer commit activity over time.  See who is active when and spot handoff points.                                             |
+| =sentiment=         | Sentiment analysis     | Sentiment score of commit messages over time.  Useful as a curiosity, not a management metric.                                        |
+
+**** Running manually
+
+#+begin_src sh
+# Analyse a repository and save protocol buffer output:
+podman run --rm \
+  -v /path/to/repo:/repo:ro \
+  srcd/hercules hercules --pb /repo > analysis.pb
+
+# Render one chart:
+podman run --rm -i \
+  srcd/hercules labours -m burndown-project -o burndown.png < analysis.pb
+#+end_src
+
+**** Using the wrapper script
+
+#+begin_src sh
+scripts/getting-started-new-codebase.zsh /path/to/repo
+#+end_src
+
+This produces a timestamped directory containing git diagnostic text
+files, onefetch/scc/git-sizer/tokei reports, one PNG per Hercules
+analysis, and CSV files from code-maat. Missing tools are skipped
+automatically.
+
+*** code-maat
+
+Companion to "Your Code as a Crime Scene" by Adam Tornhill. Coupling
+analysis, entity ownership, churn. Produces CSV output suitable for
+further processing.
+
+The workflow has two steps: export =git log= in code-maat's expected
+format, then feed it to code-maat via Podman.
+
+#+begin_src sh
+# Step 1: export git log git log --all --numstat --date=short \
+--pretty=format:'--%h--%ad--%aN' --no-renames \ > gitlog.txt
+
+# Step 2: run code-maat podman run --rm -v "$PWD":/data:ro \
+code-maat/code-maat -l /data/gitlog.txt -c git2 -a coupling
+#+end_src
+
+Available analyses: =coupling=, =abs-churn=, =entity-ownership=,
+=revisions=, =authors=, =entity-effort=, =main-dev=, =age=,
+=communication=.
+
+*** git-truck
+
+Interactive web treemap for ownership visualisation. Color by
+contributor, file type, or last modified. Runs with zero install via
+npx.
+
+#+begin_src sh
+npx git-truck
+#+end_src
+
+*Reading guidance.* A visual complement to code-maat's CSV output.
+Quickly spot large files with diffuse ownership.

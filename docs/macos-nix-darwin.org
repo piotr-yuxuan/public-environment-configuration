@@ -81,6 +81,23 @@ git clone https://github.com/piotr-yuxuan/.emacs.d ~/src/github.com/piotr-yuxuan
 ln -s ~/src/github.com/piotr-yuxuan/.emacs.d ~/.emacs.d
 #+end_src
 
+- Pull Ollama models declared in =config/ollama-models.nix=. On NixOS
+  this is handled automatically by =services.ollama.loadModels=; on
+  macOS you run the script manually:
+
+#+begin_src zsh
+./scripts/ollama-pull-models.sh
+#+end_src
+
+  The script starts a temporary Ollama server, reads the model list
+  from the Nix config with =nix eval -f=, pulls any missing models,
+  then stops the server. Set =OLLAMA_BIN= and =OLLAMA_MODELS_NIX= if
+  they are not on the default paths:
+
+#+begin_src zsh
+OLLAMA_BIN=$(which ollama) OLLAMA_MODELS_NIX=./config/ollama-models.nix ./scripts/ollama-pull-models.sh
+#+end_src
+
 - Create or import GPG and SSH keys
 - Create =~/.zshenv.secrets= with tokens (e.g. =GITLAB_PERSONAL_ACCESS_TOKEN=)
 - Launch Emacs and let it install packages

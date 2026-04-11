@@ -46,6 +46,10 @@ using it right away.
   - [[fx][fx]]
   - [[curl][curl]]
   - [[tokei][tokei]]
+  - [[onefetch][onefetch]]
+  - [[scc][scc]]
+  - [[git-sizer][git-sizer]]
+  - [[gource][gource]]
   - [[tree][tree]]
   - [[enca][enca]]
   - [[qrencode][qrencode]]
@@ -145,6 +149,12 @@ using it right away.
   - [[localsend (C40C04 only)][localsend (C40C04 only)]]
   - [[android-tools (C40C04 only)][android-tools (C40C04 only)]]
   - [[scrcpy (C40C04 only)][scrcpy (C40C04 only)]]
+  - [[discord (C40C04 only)][discord (C40C04 only)]]
+- [[Tor and transparent proxy (C40C04 only)][Tor and transparent proxy (C40C04 only)]]
+  - [[tor][tor]]
+  - [[torsocks][torsocks]]
+  - [[tor-transparent-proxy][tor-transparent-proxy]]
+- [[ProtonVPN via NetworkManager (C40C04 only)][ProtonVPN via NetworkManager (C40C04 only)]]
 - [[Virtualisation (C40C04 only)][Virtualisation (C40C04 only)]]
   - [[qemu_kvm][qemu_kvm]]
   - [[virt-manager][virt-manager]]
@@ -466,6 +476,40 @@ tokei .                        # summary of the whole repo
 tokei src/ --sort code         # sorted by lines of code
 #+end_src
 
+** onefetch
+Git repository summary for the terminal (languages, contributors,
+license, LOC).
+#+begin_src sh
+onefetch                       # summary card for the current repo
+onefetch --no-art              # text-only output
+onefetch -o json               # machine-readable JSON output
+#+end_src
+
+** scc
+Fast code counter with complexity estimation and COCOMO cost model.
+#+begin_src sh
+scc .                          # count the current directory
+scc --by-file --sort code      # per-file breakdown sorted by code lines
+scc --format html > report.html   # export as HTML report
+#+end_src
+
+** git-sizer
+Compute size metrics for a Git repository and flag potential problems.
+#+begin_src sh
+git-sizer --verbose            # human-readable report with warnings
+git-sizer --json               # machine-readable JSON output
+#+end_src
+
+** gource
+Animated 3D visualisation of repository history.  Can export to video
+via ffmpeg.  See [[file:getting-started-new-codebase.org][getting started with a new codebase]] for reading guidance.
+#+begin_src sh
+gource .                                     # visualise the current repo
+gource --seconds-per-day 0.5 --auto-skip-seconds 1 -o - \
+  | ffmpeg -y -r 60 -f image2pipe -vcodec ppm -i - \
+    -vcodec libx264 -preset medium -pix_fmt yuv420p -crf 1 gource.mp4
+#+end_src
+
 ** tree
 Directory listing as a tree.
 #+begin_src sh
@@ -608,6 +652,10 @@ podman build -t myapp .                        # build from Dockerfile
 podman ps                                      # list running containers
 #+end_src
 
+Also used by =scripts/getting-started-new-codebase.zsh= to run
+Hercules and code-maat analyses in containers.  See
+[[file:getting-started-new-codebase.org][getting started with a new codebase]] for the full workflow.
+
 * CloudFormation
 
 ** python3Packages.cfn-lint
@@ -721,29 +769,10 @@ vlc file.mp4
 cvlc --play-and-exit file.mp3  # headless playback
 #+end_src
 
-VLC uses VA-API hardware decoding on the AMD Radeon 780M (Phoenix)
-iGPU via the =radeonsi= Mesa driver.  The VCN v4.0 unified decode
-ring can time out under heavy HEVC/AV1 workloads; the kernel resets
-the ring successfully, but Mesa treats the context reset as fatal and
-calls =abort()=, crashing VLC.  Three =amdgpu= kernel parameters in
-=hosts/C40C04.nix= mitigate this:
-
-| Parameter                  | Value                    | Purpose                                              |
-|----------------------------+--------------------------+------------------------------------------------------|
-| =timeout_fatal_disable=    | =1=                      | Non-fatal ring resets (Mesa no longer aborts)         |
-| =lockup_timeout=           | =10000,10000,10000,10000= | 10 s per ring (GFX, Compute, SDMA, Video) vs 2 s default |
-| =gpu_recovery=             | =1=                      | Explicit ring reset (default is auto)                |
-
-To verify after reboot:
-#+begin_src sh
-cat /sys/module/amdgpu/parameters/timeout_fatal_disable   # expected: Y
-cat /sys/module/amdgpu/parameters/lockup_timeout           # expected: 10000,10000,10000,10000
-cat /sys/module/amdgpu/parameters/gpu_recovery             # expected: 1
-#+end_src
-
-If VCN timeouts remain very frequent, consider updating
-=linux-firmware= (newer VCN v4.0 firmware), trying a newer kernel, or
-falling back to software decode (=avcodec-hw=none= in =vlcrc=).
+VA-API hardware decoding is disabled because of recurring VCN v4.0
+ring timeouts on the Radeon 780M (Phoenix) iGPU that cause Mesa to
+abort the process.  The setting =avcodec-hw=none= is managed by Home
+Manager in =home/C40C04.nix= via =config/vlc/vlcrc=.
 
 * Profiling & flamegraphs
 
@@ -774,12 +803,23 @@ perf script | stackcollapse-perf.pl | flamegraph.pl > flame.svg
 * AI / ML
 
 ** ollama
-Run LLMs locally.
+Run LLMs locally. Installed as a cross-platform CLI package
+(=home/base.nix=). On NixOS the =services.ollama= module adds a
+systemd service with ROCm GPU acceleration (=hosts/C40C04.nix=); the
+service is not started at boot.
 #+begin_src sh
-ollama pull llama3             # download a model
+# NixOS (systemd service)
+sudo systemctl start ollama      # start the server
+sudo systemctl stop ollama       # stop the server
+systemctl status ollama          # check whether it is running
+
+# macOS (manual)
+ollama serve                     # start the API server (port 11434)
+
+# Common (both platforms)
+ollama pull llama3               # download a model
 ollama run llama3 "Explain monads in one paragraph"
-ollama list                    # show installed models
-ollama serve                   # start the API server (port 11434)
+ollama list                      # show installed models
 #+end_src
 
 ** openai-whisper
@@ -790,17 +830,29 @@ whisper recording.wav --model small --output_format srt   # produce subtitles
 #+end_src
 
 ** opencode
-AI coding agent for the terminal.
+AI coding agent for the terminal. Configured with a local Ollama
+provider so you can use locally pulled models (use =/models= to
+switch).
 #+begin_src sh
 opencode                       # launch the TUI
 opencode "refactor this function to use pattern matching"   # one-shot prompt
 #+end_src
 
 ** open-webui
-Local web UI for Ollama (and OpenAI-compatible APIs).
+Browser-based chat interface for Ollama and OpenAI-compatible APIs.
+Installed as a cross-platform CLI package (=home/base.nix=). On NixOS
+the =services.open-webui= module adds a systemd service
+(=hosts/C40C04.nix=); the service is not started at boot.
 #+begin_src sh
-open-webui serve               # start on http://localhost:8080
-# Then open the URL in your browser for a chat interface with model selection.
+# NixOS (systemd service)
+sudo systemctl start open-webui  # start the server
+sudo systemctl stop open-webui   # stop the server
+systemctl status open-webui      # check whether it is running
+
+# macOS (manual)
+open-webui serve                 # start on http://localhost:8080
+
+# Then open http://localhost:8080 in a browser.
 #+end_src
 
 * Email
@@ -881,9 +933,9 @@ age -d -i key.txt secret.enc > secret.txt
 See [[*sops][IaC / Cloud § sops]] above.
 
 ** firejail (C40C04 only)
-Filesystem sandboxing for GUI applications.  VSCode runs through
-firejail with a whitelist restricting access to project directories
-and blocking =~/.ssh=, =~/.gnupg=, and other secrets.
+Filesystem sandboxing for GUI applications.  Firefox Developer Edition,
+VSCode, Signal, VLC, and Discord all run through firejail with profiles
+restricting filesystem access and blocking secrets.
 #+begin_src sh
 firejail --list                # show running sandboxed processes
 firejail --tree                # sandbox hierarchy
@@ -1228,6 +1280,141 @@ scrcpy                                       # mirror via USB
 scrcpy --tcpip=192.168.1.42                  # mirror over Wi-Fi
 scrcpy --no-audio --max-fps 30               # video only, capped at 30 fps
 scrcpy --record file.mp4                     # mirror and record to file
+#+end_src
+
+** discord (C40C04 only)
+Voice, video, and text chat.  Sandboxed via Firejail with a custom
+profile granting DBus portal access for desktop integration (dark/light
+theme, screen sharing).
+#+begin_src sh
+Discord                                      # launch (runs inside firejail)
+firejail --list                              # verify it is sandboxed
+#+end_src
+
+* Tor and transparent proxy (C40C04 only)
+
+** tor
+Anonymous communication network.  Runs as a system service
+(=services.tor=) on C40C04 with TransPort (9040), DNSPort (5353), and
+the default SOCKSPort (9050).  The daemon starts at boot and maintains
+circuits so the transparent proxy can be toggled on without bootstrap
+delay.
+
+** torsocks
+Wrapper that forces a single command through Tor's SOCKS proxy without
+needing the transparent proxy active.
+#+begin_src sh
+torsocks curl https://check.torproject.org/api/ip
+torsocks wget https://example.onion/file.txt
+torsocks ssh user@host                       # SSH over Tor
+#+end_src
+
+** tor-transparent-proxy
+Oneshot systemd service that installs nftables redirect rules capturing
+all outbound TCP and DNS traffic through Tor.  Not started at boot; the
+user toggles it manually.
+
+IPv6 is blocked while the proxy is active because Tor does not support
+IPv6 exit nodes (allowing it would leak traffic outside Tor).  LAN
+traffic (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16) is exempted, so
+LocalSend (port 53317) and mDNS continue to work.
+
+#+begin_src sh
+# Route all traffic through Tor
+sudo systemctl start tor-transparent-proxy
+
+# Return to normal networking
+sudo systemctl stop tor-transparent-proxy
+
+# Check status
+systemctl status tor-transparent-proxy
+
+# Verify Tor is working
+curl https://check.torproject.org/api/ip
+
+# Verify the nftables table exists while active
+sudo nft list tables
+#+end_src
+
+* ProtonVPN via NetworkManager (C40C04 only)
+
+C40C04 uses NetworkManager (=networking.networkmanager.enable = true= in
+=flake.nix=), which has native WireGuard support.  ProtonVPN connections
+are imported at runtime as NetworkManager profiles rather than declared
+in Nix.  Once imported, they appear in GNOME Settings > Network > VPN
+and persist across reboots in
+=/etc/NetworkManager/system-connections/=.
+
+*** Downloading a WireGuard config
+
+1. Log into [[https://account.protonvpn.com/downloads#wireguard-configuration][account.protonvpn.com]] > Downloads > WireGuard configuration.
+2. Pick a country/server and platform (Linux).
+3. Save the =.conf= file (e.g. =protonvpn-nl-42.conf=).
+
+*** Importing and using the connection
+
+#+begin_src sh
+# Import the config as a NetworkManager connection
+nmcli connection import type wireguard file protonvpn-nl-42.conf
+
+# Prevent it from activating automatically at boot
+nmcli connection modify protonvpn-nl-42 autoconnect no
+
+# Connect
+nmcli connection up protonvpn-nl-42
+
+# Disconnect
+nmcli connection down protonvpn-nl-42
+
+# Check status
+nmcli connection show --active
+
+# Remove the connection entirely
+nmcli connection delete protonvpn-nl-42
+#+end_src
+
+The connection can also be toggled from the GNOME network menu in the
+top panel (the VPN toggle appears once at least one VPN connection is
+imported).
+
+*** DNS leak prevention
+
+NetworkManager sets DNS servers from the WireGuard config automatically.
+Verify that DNS queries go through the tunnel:
+#+begin_src sh
+resolvectl status           # check which DNS server is active per interface
+resolvectl query example.com  # confirm resolution goes through the VPN DNS
+#+end_src
+
+If =systemd-resolved= is active (it is on C40C04), NetworkManager
+routes DNS through the tunnel interface by default when the VPN
+connection has =ipv4.dns-priority= set lower (more negative) than other
+connections.  ProtonVPN configs ship with their own DNS servers so this
+works out of the box.
+
+*** Multiple servers
+
+You can import several configs (different countries, different server
+load) and switch between them:
+#+begin_src sh
+nmcli connection import type wireguard file protonvpn-ch-15.conf
+nmcli connection modify protonvpn-ch-15 autoconnect no
+nmcli connection down protonvpn-nl-42 && nmcli connection up protonvpn-ch-15
+#+end_src
+
+*** Interaction with the Tor transparent proxy
+
+Do not run both at the same time.  The Tor transparent proxy captures
+all outbound TCP/DNS at the nftables level, which would conflict with
+the WireGuard tunnel.  Stop one before starting the other:
+#+begin_src sh
+# Switch from Tor to VPN
+sudo systemctl stop tor-transparent-proxy
+nmcli connection up protonvpn-nl-42
+
+# Switch from VPN to Tor
+nmcli connection down protonvpn-nl-42
+sudo systemctl start tor-transparent-proxy
 #+end_src
 
 * Virtualisation (C40C04 only)

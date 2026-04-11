@@ -18,6 +18,7 @@
   ...
 }: let
   inherit (import ./lib.nix) filterAvailable;
+  ollamaModels = import ../config/ollama-models.nix;
 in {
   # Let Home Manager manage itself.
   programs.home-manager.enable = true;
@@ -77,6 +78,9 @@ in {
     unstable.yq-go
     unstable.curl
     unstable.tokei
+    unstable.onefetch
+    unstable.scc
+    unstable.gource # animated 3D visualisation of repository history
     unstable.bmon
     unstable.coreutils
     unstable.duckdb
@@ -96,6 +100,7 @@ in {
     # IaC / Cloud
     unstable.aws-vault # secure AWS credential management
     unstable.ssm-session-manager-plugin
+    unstable.git-sizer # repository size metrics and health check
     unstable.podman
     unstable.sops
     unstable.tenv
@@ -123,6 +128,7 @@ in {
 
     # AI / ML
     unstable.ollama
+    unstable.open-webui
     unstable.openai-whisper
 
     # Build tools
@@ -436,7 +442,23 @@ in {
   };
   programs.jq.enable = true;
   programs.mu.enable = true;
-  programs.opencode.enable = true;
+  programs.opencode = {
+    enable = true;
+    settings = {
+      provider = {
+        ollama = {
+          npm = "@ai-sdk/openai-compatible";
+          name = "Ollama (local)";
+          options.baseURL = "http://localhost:11434/v1";
+          models = builtins.listToAttrs (builtins.map (m: {
+              name = m.model;
+              value = {name = "${m.name} (ollama)";};
+            })
+            ollamaModels);
+        };
+      };
+    };
+  };
   programs.pandoc.enable = true;
   programs.ripgrep = {
     enable = true;
